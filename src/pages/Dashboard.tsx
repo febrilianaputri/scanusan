@@ -1,32 +1,30 @@
-import { useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import StatCard from '../components/StatCard';
 import LiveScanCenter from '../components/LiveScanCenter';
-import { transactions, stockMovementData, weeklyData, monthlyData } from '../data/mockData';
-
-const timeFilters = ['Today', '7 Days', '30 Days'];
+import { useAppData } from '../data/AppDataContext';
 
 export default function Dashboard() {
-  const [activeFilter, setActiveFilter] = useState('Today');
-
-  const chartData =
-    activeFilter === 'Today' ? stockMovementData :
-    activeFilter === '7 Days' ? weeklyData :
-    monthlyData;
-
-  const xKey = activeFilter === 'Today' ? 'time' : activeFilter === '7 Days' ? 'day' : 'week';
+  const { data } = useAppData();
+  const recordedMovement = data.transactions.slice(0, 8).reverse().map((transaction) => ({
+    time: transaction.time,
+    in: transaction.type === 'in' ? transaction.quantity : 0,
+    out: transaction.type === 'out' ? transaction.quantity : 0,
+  }));
+  const stockInToday = data.transactions.filter((transaction) => transaction.type === 'in').reduce((sum, transaction) => sum + transaction.quantity, 0);
+  const stockOutToday = data.transactions.filter((transaction) => transaction.type === 'out').reduce((sum, transaction) => sum + transaction.quantity, 0);
+  const lowStockProducts = data.products.filter((product) => product.status === 'low' || product.status === 'out');
 
   return (
     <div className="flex flex-col gap-6">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard icon="📦" label="Total Items" value="1,284" trend="+3.2%" trendUp />
-        <StatCard icon="↑" label="Stock In Today" value="+120" trend="+15%" trendUp accent="rgba(106,168,79,0.12)" />
-        <StatCard icon="↓" label="Stock Out Today" value="-85" trend="-8%" accent="rgba(217,83,79,0.08)" />
-        <StatCard icon="⚠" label="Low Stock" value="12" trend="12 items" accent="rgba(233,180,76,0.12)" />
-        <StatCard icon="🔴" label="Out of Stock" value="4" trend="4 items" accent="rgba(217,83,79,0.08)" />
+        <StatCard icon="📦" label="Products" value={String(data.products.length)} trend="In inventory" trendUp />
+        <StatCard icon="↑" label="Stock In" value={`+${stockInToday}`} trend="Recorded quantity" trendUp accent="rgba(106,168,79,0.12)" />
+        <StatCard icon="↓" label="Stock Out" value={`-${stockOutToday}`} trend="Recorded quantity" accent="rgba(217,83,79,0.08)" />
+        <StatCard icon="⚠" label="Low Stock" value={String(data.products.filter((product) => product.status === 'low').length)} trend="Needs restocking" accent="rgba(233,180,76,0.12)" />
+        <StatCard icon="🔴" label="Out of Stock" value={String(data.products.filter((product) => product.status === 'out').length)} trend="Unavailable" accent="rgba(217,83,79,0.08)" />
       </div>
 
       {/* Charts + scanner row */}
@@ -36,31 +34,15 @@ export default function Dashboard() {
           className="lg:col-span-2 rounded-2xl p-5"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
-          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4">
             <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>
-              Stock Movement
+              Recent Stock Movement
             </h2>
-            <div className="flex gap-1">
-              {timeFilters.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setActiveFilter(f)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold font-body transition-all"
-                  style={
-                    activeFilter === f
-                      ? { background: 'var(--primary)', color: 'var(--primary-foreground)' }
-                      : { background: 'var(--muted)', color: 'var(--muted-foreground)' }
-                  }
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={chartData}>
+            <LineChart data={recordedMovement}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey={xKey} stroke="var(--muted-foreground)" tick={{ fontSize: 11 }} />
+              <XAxis dataKey="time" stroke="var(--muted-foreground)" tick={{ fontSize: 11 }} />
               <YAxis stroke="var(--muted-foreground)" tick={{ fontSize: 11 }} />
               <Tooltip
                 contentStyle={{
@@ -141,7 +123,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.slice(0, 5).map((tx) => (
+                {data.transactions.slice(0, 5).map((tx) => (
                   <tr
                     key={tx.id}
                     className="transition-colors"
@@ -180,12 +162,7 @@ export default function Dashboard() {
             Low Stock Alerts
           </h2>
           <div className="flex flex-col gap-2">
-            {[
-              { name: 'RJ45 Connector', stock: 8, min: 10 },
-              { name: 'USB-C Adapter', stock: 4, min: 8 },
-              { name: 'HDMI Cable 2m', stock: 0, min: 5 },
-              { name: 'Ethernet Switch 8P', stock: 0, min: 2 },
-            ].map((item) => (
+            {lowStockProducts.map((item) => (
               <div
                 key={item.name}
                 className="flex items-center gap-3 px-3 py-3 rounded-xl"
@@ -193,23 +170,23 @@ export default function Dashboard() {
               >
                 <div
                   className="w-2 h-2 rounded-full shrink-0"
-                  style={{ background: item.stock === 0 ? 'var(--danger)' : 'var(--warning)' }}
+                  style={{ background: item.currentStock === 0 ? 'var(--danger)' : 'var(--warning)' }}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold font-body truncate" style={{ color: 'var(--foreground)' }}>
                     {item.name}
                   </div>
                   <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    {item.stock === 0 ? 'Out of stock' : `${item.stock} pcs remaining`}
+                    {item.currentStock === 0 ? 'Out of stock' : `${item.currentStock} ${item.unit} remaining`}
                   </div>
                 </div>
                 <span
                   className="text-xs px-2 py-0.5 rounded-full font-semibold shrink-0"
-                  style={item.stock === 0
+                  style={item.currentStock === 0
                     ? { background: 'rgba(217,83,79,0.12)', color: 'var(--danger)' }
                     : { background: 'rgba(233,180,76,0.12)', color: 'var(--warning)' }}
                 >
-                  {item.stock === 0 ? 'Empty' : 'Low'}
+                  {item.currentStock === 0 ? 'Empty' : 'Low'}
                 </span>
               </div>
             ))}

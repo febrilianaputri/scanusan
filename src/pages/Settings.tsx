@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Theme } from '../types';
 
 interface SettingsProps {
@@ -14,12 +15,13 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </div>
 );
 
-const Field = ({ label, defaultValue, type = 'text' }: { label: string; defaultValue: string; type?: string }) => (
+const Field = ({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) => (
   <div className="flex flex-col gap-1.5">
     <label className="text-xs font-semibold font-body" style={{ color: 'var(--muted-foreground)' }}>{label}</label>
     <input
       type={type}
-      defaultValue={defaultValue}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
       className="px-3 py-2.5 rounded-xl text-sm font-body outline-none"
       style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
       onFocus={(e) => (e.target.style.borderColor = 'var(--primary)')}
@@ -29,27 +31,51 @@ const Field = ({ label, defaultValue, type = 'text' }: { label: string; defaultV
 );
 
 export default function Settings({ theme, onThemeChange }: SettingsProps) {
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const defaults = {
+      company: 'KAMI Inventory', warehouse: 'Main Warehouse', timezone: 'Asia/Jakarta (WIB)',
+      unit: 'pcs', threshold: '10', timeout: '30', endpoint: 'http://scanner-api.local/v1',
+    };
+    try {
+      return { ...defaults, ...JSON.parse(localStorage.getItem('kami-inventory-settings') || '{}') };
+    } catch {
+      return defaults;
+    }
+  });
+  const [stockAlert, setStockAlert] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const update = (key: string, value: string) => setValues((current) => ({ ...current, [key]: value }));
+  const save = () => {
+    try {
+      localStorage.setItem('kami-inventory-settings', JSON.stringify({ ...values, stockAlert, theme }));
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setSaved(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl flex flex-col gap-4">
       <Section title="GENERAL">
-        <Field label="Company Name" defaultValue="KAMI Inventory" />
-        <Field label="Warehouse Name" defaultValue="Main Warehouse" />
-        <Field label="Timezone" defaultValue="Asia/Jakarta (WIB)" />
+        <Field label="Company Name" value={values.company} onChange={(value) => update('company', value)} />
+        <Field label="Warehouse Name" value={values.warehouse} onChange={(value) => update('warehouse', value)} />
+        <Field label="Timezone" value={values.timezone} onChange={(value) => update('timezone', value)} />
       </Section>
 
       <Section title="INVENTORY">
-        <Field label="Default Unit" defaultValue="pcs" />
-        <Field label="Low Stock Threshold" defaultValue="10" type="number" />
+        <Field label="Default Unit" value={values.unit} onChange={(value) => update('unit', value)} />
+        <Field label="Low Stock Threshold" value={values.threshold} onChange={(value) => update('threshold', value)} type="number" />
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold font-body" style={{ color: 'var(--foreground)' }}>Stock Alert</div>
             <div className="text-xs font-body" style={{ color: 'var(--muted-foreground)' }}>Send notifications when stock is low</div>
           </div>
-          <div className="relative cursor-pointer">
-            <div className="w-12 h-6 rounded-full" style={{ background: 'var(--primary)' }}>
-              <div className="w-5 h-5 rounded-full bg-white absolute right-0.5 top-0.5 shadow" />
+          <button type="button" role="switch" aria-checked={stockAlert} aria-label="Stock alert" onClick={() => setStockAlert(!stockAlert)} className="relative cursor-pointer">
+            <div className="w-12 h-6 rounded-full" style={{ background: stockAlert ? 'var(--primary)' : 'var(--border)' }}>
+              <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 shadow transition-all" style={{ left: stockAlert ? '26px' : '2px' }} />
             </div>
-          </div>
+          </button>
         </div>
       </Section>
 
@@ -66,18 +92,18 @@ export default function Settings({ theme, onThemeChange }: SettingsProps) {
             </div>
           </div>
         </div>
-        <Field label="Scanner Timeout (seconds)" defaultValue="30" type="number" />
-        <Field label="API Endpoint" defaultValue="http://scanner-api.local/v1" />
+        <Field label="Scanner Timeout (seconds)" value={values.timeout} onChange={(value) => update('timeout', value)} type="number" />
+        <Field label="API Endpoint" value={values.endpoint} onChange={(value) => update('endpoint', value)} />
       </Section>
 
       <Section title="APPEARANCE">
         <div>
           <div className="text-xs font-semibold mb-2 font-body" style={{ color: 'var(--muted-foreground)' }}>Theme</div>
           <div className="grid grid-cols-3 gap-2">
-            {(['light', 'dark', 'system'] as const).map((t) => (
+            {(['light', 'dark'] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => t !== 'system' && onThemeChange(t)}
+                onClick={() => onThemeChange(t)}
                 className="py-3 rounded-xl flex flex-col items-center gap-1 text-xs font-semibold font-body transition-all"
                 style={theme === t
                   ? { background: 'var(--primary)', color: 'var(--primary-foreground)', border: '2px solid var(--primary)' }
@@ -92,7 +118,8 @@ export default function Settings({ theme, onThemeChange }: SettingsProps) {
       </Section>
 
       <div className="flex justify-end">
-        <button className="px-6 py-2.5 rounded-xl text-sm font-semibold font-body"
+        {saved && <span role="status" className="self-center mr-3 text-sm" style={{ color: 'var(--success)' }}>Settings saved on this device</span>}
+        <button onClick={save} className="px-6 py-2.5 rounded-xl text-sm font-semibold font-body"
           style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
           Save Settings
         </button>

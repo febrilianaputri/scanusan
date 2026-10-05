@@ -1,27 +1,50 @@
 import { useState, useEffect } from 'react';
+import { useAppData } from '../data/AppDataContext';
+import type { Product } from '../types';
 
 type ScanState = 'waiting' | 'scanning' | 'success' | 'error';
 
-const SUCCESS_DATA = {
-  barcode: '899001234567',
-  product: 'CAT6 UTP Cable',
-  type: 'STOCK OUT',
-  quantity: -5,
-  prevStock: 40,
-  newStock: 35,
-  scanner: 'Scanner-01',
-};
-
 export default function LiveScanCenter() {
+  const { data, setData } = useAppData();
   const [state, setState] = useState<ScanState>('waiting');
   const [simulating, setSimulating] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
 
   const simulate = () => {
     if (simulating) return;
     setSimulating(true);
     setState('scanning');
     setTimeout(() => {
-      setState(Math.random() > 0.2 ? 'success' : 'error');
+      const product = data.products.find((item) => item.currentStock > 0);
+      if (!product) {
+        setState('error');
+        setSimulating(false);
+        return;
+      }
+      const now = new Date();
+      const updatedProduct = {
+        ...product,
+        currentStock: product.currentStock - 1,
+        status: product.currentStock - 1 === 0 ? 'out' as const : product.currentStock - 1 < product.minStock ? 'low' as const : 'good' as const,
+      };
+      setData((current) => ({
+        ...current,
+        products: current.products.map((item) => item.id === product.id ? updatedProduct : item),
+        transactions: [{
+          id: `tx-${now.getTime()}`,
+          time: now.toLocaleTimeString('en-GB'),
+          barcode: product.barcode,
+          product: product.name,
+          type: 'out',
+          quantity: 1,
+          prevStock: product.currentStock,
+          currentStock: updatedProduct.currentStock,
+          scanner: 'Scanner-01',
+          user: 'operator',
+        }, ...current.transactions],
+      }));
+      setScannedProduct(updatedProduct);
+      setState('success');
       setSimulating(false);
     }, 1800);
   };
@@ -53,7 +76,7 @@ export default function LiveScanCenter() {
           </span>
         </div>
         <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ background: 'rgba(106,168,79,0.12)', color: 'var(--success)' }}>
-          Scanner Online
+          Demo Scanner
         </span>
       </div>
 
@@ -99,22 +122,22 @@ export default function LiveScanCenter() {
               </span>
             </div>
             <div className="text-xs font-mono py-1.5 px-2 rounded-lg" style={{ background: 'var(--secondary)', color: 'var(--foreground)' }}>
-              {SUCCESS_DATA.barcode}
+              {scannedProduct?.barcode}
             </div>
             <div className="font-semibold text-sm font-body" style={{ color: 'var(--foreground)' }}>
-              {SUCCESS_DATA.product}
+              {scannedProduct?.name}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
                 style={{ background: 'rgba(217,83,79,0.12)', color: 'var(--danger)' }}>
-                {SUCCESS_DATA.type}
+                STOCK OUT
               </span>
               <span className="font-bold text-sm" style={{ color: 'var(--danger)' }}>
-                {SUCCESS_DATA.quantity} pcs
+                -1 {scannedProduct?.unit}
               </span>
             </div>
             <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              Stock: {SUCCESS_DATA.prevStock} → <strong style={{ color: 'var(--foreground)' }}>{SUCCESS_DATA.newStock}</strong>
+              Stock: {(scannedProduct?.currentStock ?? 0) + 1} → <strong style={{ color: 'var(--foreground)' }}>{scannedProduct?.currentStock}</strong>
             </div>
           </div>
         )}
@@ -123,10 +146,9 @@ export default function LiveScanCenter() {
           <>
             <div className="text-3xl">⚠</div>
             <p className="text-sm font-semibold font-display" style={{ color: 'var(--warning)' }}>
-              Unknown Barcode
+              No Scannable Stock
             </p>
-            <p className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>899001234567</p>
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Product not registered</p>
+            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Add an in-stock product before simulating a scan.</p>
           </>
         )}
       </div>

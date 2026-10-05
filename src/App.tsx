@@ -17,41 +17,80 @@ import AccountSettings from './pages/AccountSettings';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import { AppDataProvider } from './data/AppDataContext';
+
+function loadSavedUser(): AuthUser | null {
+  try {
+    const saved = localStorage.getItem('kami-auth-user') || sessionStorage.getItem('kami-auth-user');
+    if (!saved) return null;
+    const user: unknown = JSON.parse(saved);
+    if (typeof user === 'object' && user !== null && 'id' in user && 'name' in user && 'email' in user && 'role' in user) {
+      return user as AuthUser;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
 
 export default function App() {
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>(() => localStorage.getItem('kami-inventory-theme') === 'dark' ? 'dark' : 'light');
   const [page, setPage] = useState<Page>('dashboard');
   const [authPage, setAuthPage] = useState<AuthPage>('login');
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(loadSavedUser);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
+    try { localStorage.setItem('kami-inventory-theme', theme); } catch {}
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
-  const handleLogin = (u: AuthUser) => {
+  const handleLogin = (u: AuthUser, remember: boolean) => {
+    try {
+      const storage = remember ? localStorage : sessionStorage;
+      storage.setItem('kami-auth-user', JSON.stringify(u));
+      (remember ? sessionStorage : localStorage).removeItem('kami-auth-user');
+    } catch {}
+    setUser(u);
+    setPage('dashboard');
+  };
+
+  const handleRegister = (u: AuthUser) => {
+    try { sessionStorage.setItem('kami-auth-user', JSON.stringify(u)); } catch {}
     setUser(u);
     setPage('dashboard');
   };
 
   const handleLogout = () => {
+    try {
+      localStorage.removeItem('kami-auth-user');
+      sessionStorage.removeItem('kami-auth-user');
+    } catch {}
     setUser(null);
     setAuthPage('login');
   };
 
-  const handleUserUpdate = (u: AuthUser) => setUser(u);
+  const handleUserUpdate = (u: AuthUser) => {
+    setUser(u);
+    try {
+      const storage = localStorage.getItem('kami-auth-user') ? localStorage : sessionStorage;
+      storage.setItem('kami-auth-user', JSON.stringify(u));
+    } catch {}
+  };
 
   // Auth flow
   if (!user) {
     const authProps = { theme, onThemeToggle: toggleTheme, onNavigate: setAuthPage };
     return (
+      <AppDataProvider>
       <div style={{ background: 'var(--background)', minHeight: '100vh' }}>
         {authPage === 'login' && <Login {...authProps} onLogin={handleLogin} />}
-        {authPage === 'register' && <Register {...authProps} />}
+        {authPage === 'register' && <Register {...authProps} onRegister={handleRegister} />}
         {authPage === 'forgot-password' && <ForgotPassword {...authProps} />}
       </div>
+      </AppDataProvider>
     );
   }
 
@@ -72,12 +111,13 @@ export default function App() {
       case 'users': return <Users />;
       case 'settings': return <Settings theme={theme} onThemeChange={setTheme} />;
       case 'profile': return <Profile user={authedUser} onUpdate={handleUserUpdate} />;
-      case 'account-settings': return <AccountSettings user={authedUser} theme={theme} onThemeChange={setTheme} />;
+      case 'account-settings': return <AccountSettings user={authedUser} theme={theme} onThemeChange={setTheme} onUpdate={handleUserUpdate} />;
       default: return <Dashboard />;
     }
   };
 
   return (
+    <AppDataProvider>
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
       <Sidebar
         currentPage={page}
@@ -114,5 +154,6 @@ export default function App() {
         </button>
       )}
     </div>
+    </AppDataProvider>
   );
 }

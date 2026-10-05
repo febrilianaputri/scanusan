@@ -1,44 +1,75 @@
 import { useState } from 'react';
+import { useAppData } from '../data/AppDataContext';
+import type { Product } from '../types';
 
 type TxTab = 'in' | 'out';
-type ScanState = 'waiting' | 'scanning' | 'found' | 'not-found' | 'insufficient' | 'success' | 'failed';
-
-const FOUND_PRODUCT = {
-  barcode: '899001234567',
-  name: 'CAT6 UTP Cable',
-  currentStock: 35,
-};
+type ScanState = 'waiting' | 'scanning' | 'found' | 'not-found' | 'insufficient' | 'success';
 
 export default function StockTransaction() {
+  const { data, setData } = useAppData();
   const [tab, setTab] = useState<TxTab>('in');
   const [scanState, setScanState] = useState<ScanState>('waiting');
   const [quantity, setQuantity] = useState(1);
   const [simulating, setSimulating] = useState(false);
+  const [barcode, setBarcode] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const simulate = () => {
     if (simulating) return;
     setSimulating(true);
     setScanState('scanning');
     setTimeout(() => {
-      setScanState('found');
+      const product = data.products.find((item) => item.barcode === barcode.trim()) ??
+        (barcode.trim() ? undefined : data.products[0]);
+      setSelectedProduct(product ?? null);
+      setScanState(product ? 'found' : 'not-found');
       setSimulating(false);
     }, 1500);
   };
 
   const confirm = () => {
-    if (tab === 'out' && quantity > FOUND_PRODUCT.currentStock) {
+    if (!selectedProduct) return;
+    if (tab === 'out' && quantity > selectedProduct.currentStock) {
       setScanState('insufficient');
       return;
     }
+    const previousStock = selectedProduct.currentStock;
+    const currentStock = tab === 'in' ? previousStock + quantity : previousStock - quantity;
+    const updatedProduct = {
+      ...selectedProduct,
+      currentStock,
+      status: currentStock === 0 ? 'out' as const : currentStock < selectedProduct.minStock ? 'low' as const : 'good' as const,
+    };
+    const now = new Date();
+    const transaction = {
+      id: `tx-${now.getTime()}`,
+      time: now.toLocaleTimeString('en-GB'),
+      barcode: selectedProduct.barcode,
+      product: selectedProduct.name,
+      type: tab,
+      quantity,
+      prevStock: previousStock,
+      currentStock,
+      scanner: 'Scanner-01',
+      user: 'operator',
+    };
+    setData((current) => ({
+      ...current,
+      products: current.products.map((product) => product.id === updatedProduct.id ? updatedProduct : product),
+      transactions: [transaction, ...current.transactions],
+    }));
+    setSelectedProduct(updatedProduct);
     setScanState('success');
     setTimeout(() => { setScanState('waiting'); setQuantity(1); }, 3000);
   };
 
-  const reset = () => { setScanState('waiting'); setQuantity(1); };
+  const reset = () => { setScanState('waiting'); setQuantity(1); setBarcode(''); setSelectedProduct(null); };
 
-  const newStock = tab === 'in'
-    ? FOUND_PRODUCT.currentStock + quantity
-    : FOUND_PRODUCT.currentStock - quantity;
+  const newStock = scanState === 'success'
+    ? selectedProduct?.currentStock ?? 0
+    : tab === 'in'
+      ? (selectedProduct?.currentStock ?? 0) + quantity
+      : (selectedProduct?.currentStock ?? 0) - quantity;
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-4">
@@ -93,6 +124,15 @@ export default function StockTransaction() {
                 Point your IoT scanner at a product barcode
               </p>
             </div>
+            <input
+              value={barcode}
+              onChange={(event) => setBarcode(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Enter') simulate(); }}
+              placeholder="Scan or enter barcode"
+              aria-label="Product barcode"
+              className="w-full max-w-sm px-4 py-3 rounded-xl text-sm font-body outline-none"
+              style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+            />
             <button
               onClick={simulate}
               className="px-6 py-3 rounded-xl text-sm font-semibold font-body"
@@ -123,10 +163,10 @@ export default function StockTransaction() {
               <span className="font-display font-semibold" style={{ color: 'var(--success)' }}>Barcode Detected</span>
             </div>
             <div className="rounded-xl p-4" style={{ background: 'var(--muted)' }}>
-              <div className="text-xs font-mono mb-1" style={{ color: 'var(--muted-foreground)' }}>{FOUND_PRODUCT.barcode}</div>
-              <div className="font-display font-semibold text-lg" style={{ color: 'var(--foreground)' }}>{FOUND_PRODUCT.name}</div>
+              <div className="text-xs font-mono mb-1" style={{ color: 'var(--muted-foreground)' }}>{selectedProduct?.barcode}</div>
+              <div className="font-display font-semibold text-lg" style={{ color: 'var(--foreground)' }}>{selectedProduct?.name}</div>
               <div className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>
-                Current Stock: <strong style={{ color: 'var(--foreground)' }}>{FOUND_PRODUCT.currentStock} pcs</strong>
+                Current Stock: <strong style={{ color: 'var(--foreground)' }}>{selectedProduct?.currentStock} {selectedProduct?.unit}</strong>
               </div>
             </div>
 
@@ -178,7 +218,7 @@ export default function StockTransaction() {
             <div className="text-5xl">⚠</div>
             <p className="font-display font-semibold text-lg" style={{ color: 'var(--warning)' }}>Insufficient Stock</p>
             <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              Requested {quantity} pcs but only {FOUND_PRODUCT.currentStock} pcs available
+                Requested {quantity} {selectedProduct?.unit} but only {selectedProduct?.currentStock} {selectedProduct?.unit} available
             </p>
             <button onClick={() => setScanState('found')} className="px-6 py-2.5 rounded-xl text-sm font-semibold font-body"
               style={{ background: 'var(--muted)', color: 'var(--foreground)' }}>
@@ -197,12 +237,21 @@ export default function StockTransaction() {
               Transaction Successful!
             </p>
             <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              Stock {tab === 'in' ? 'In' : 'Out'}: {quantity} pcs • {FOUND_PRODUCT.name}
+              Stock {tab === 'in' ? 'In' : 'Out'}: {quantity} {selectedProduct?.unit} • {selectedProduct?.name}
             </p>
             <p className="text-sm">
               <span style={{ color: 'var(--muted-foreground)' }}>New Stock: </span>
-              <strong style={{ color: 'var(--foreground)' }}>{newStock} pcs</strong>
+              <strong style={{ color: 'var(--foreground)' }}>{newStock} {selectedProduct?.unit}</strong>
             </p>
+          </div>
+        )}
+
+        {scanState === 'not-found' && (
+          <div className="w-full text-center flex flex-col items-center gap-3">
+            <p className="font-display font-semibold text-lg" style={{ color: 'var(--danger)' }}>Product not found</p>
+            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Check the barcode or add the product to inventory first.</p>
+            <button onClick={reset} className="px-6 py-2.5 rounded-xl text-sm font-semibold font-body"
+              style={{ background: 'var(--muted)', color: 'var(--foreground)' }}>Scan Again</button>
           </div>
         )}
       </div>

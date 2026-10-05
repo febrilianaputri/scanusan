@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { products as initialProducts } from '../data/mockData';
+import { useAppData } from '../data/AppDataContext';
 import type { Product } from '../types';
 
 const categories = ['All', 'Networking', 'Accessories', 'Fiber'];
@@ -7,10 +7,14 @@ const categories = ['All', 'Networking', 'Accessories', 'Fiber'];
 interface AddModalProps {
   onClose: () => void;
   onSave: (p: Omit<Product, 'id' | 'status'>) => void;
+  product?: Product | null;
 }
 
-function AddModal({ onClose, onSave }: AddModalProps) {
-  const [form, setForm] = useState({
+function AddModal({ onClose, onSave, product }: AddModalProps) {
+  const [form, setForm] = useState(() => product ? {
+    name: product.name, barcode: product.barcode, category: product.category, unit: product.unit,
+    minStock: product.minStock, currentStock: product.currentStock, location: product.location, supplier: product.supplier,
+  } : {
     name: '', barcode: '', category: 'Networking', unit: 'pcs',
     minStock: 10, currentStock: 0, location: '', supplier: '',
   });
@@ -46,7 +50,7 @@ function AddModal({ onClose, onSave }: AddModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
       <div className="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>Add New Product</h2>
+          <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>{product ? 'Edit Product' : 'Add New Product'}</h2>
           <button onClick={onClose} className="text-lg" style={{ color: 'var(--muted-foreground)' }}>✕</button>
         </div>
         <div className="px-6 py-4 flex flex-col gap-3">
@@ -59,19 +63,13 @@ function AddModal({ onClose, onSave }: AddModalProps) {
               <input
                 value={form.barcode}
                 onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                placeholder="Enter or scan barcode"
+                placeholder="Type or scan barcode, then press Enter"
                 className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
                 style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
               />
-              <button
-                className="px-3 py-2.5 rounded-xl text-sm font-semibold font-body"
-                style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--primary)' }}
-              >
-                📡 Scan
-              </button>
             </div>
             <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-              Use the connected IoT scanner to automatically enter the barcode.
+              A connected scanner can type directly into this field.
             </p>
           </div>
           {field('Category', 'category')}
@@ -94,7 +92,7 @@ function AddModal({ onClose, onSave }: AddModalProps) {
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body"
             style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
           >
-            Save Product
+            {product ? 'Save Changes' : 'Save Product'}
           </button>
         </div>
       </div>
@@ -109,11 +107,13 @@ const statusConfig = {
 };
 
 export default function Inventory() {
-  const [prods, setProds] = useState<Product[]>(initialProducts);
+  const { data, setData } = useAppData();
+  const prods = data.products;
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Product | null>(null);
 
   const filtered = prods.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search);
@@ -124,7 +124,20 @@ export default function Inventory() {
 
   const handleAdd = (data: Omit<Product, 'id' | 'status'>) => {
     const status: Product['status'] = data.currentStock === 0 ? 'out' : data.currentStock < data.minStock ? 'low' : 'good';
-    setProds([...prods, { ...data, id: String(Date.now()), status }]);
+    setData((current) => ({ ...current, products: [...current.products, { ...data, id: String(Date.now()), status }] }));
+  };
+
+  const handleSave = (productData: Omit<Product, 'id' | 'status'>) => {
+    const status: Product['status'] = productData.currentStock === 0 ? 'out' : productData.currentStock < productData.minStock ? 'low' : 'good';
+    if (editing) {
+      setData((current) => ({
+        ...current,
+        products: current.products.map((product) => product.id === editing.id ? { ...productData, id: product.id, status } : product),
+      }));
+      setEditing(null);
+      return;
+    }
+    handleAdd(productData);
   };
 
   return (
@@ -163,7 +176,7 @@ export default function Inventory() {
           </select>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => { setEditing(null); setShowModal(true); }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
           style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
         >
@@ -202,7 +215,7 @@ export default function Inventory() {
                       <div className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{p.name}</div>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
-                      {p.barcode.slice(0, 8)}...
+                      {p.barcode}
                     </td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{p.category}</td>
                     <td className="px-4 py-3 font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
@@ -218,9 +231,13 @@ export default function Inventory() {
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{p.supplier}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        <button className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors"
+                        <button onClick={() => { setEditing(p); setShowModal(true); }} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors"
                           style={{ background: 'var(--muted)', color: 'var(--primary)' }}>Edit</button>
-                        <button className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors"
+                        <button onClick={() => {
+                          if (window.confirm(`Delete ${p.name}?`)) {
+                            setData((current) => ({ ...current, products: current.products.filter((product) => product.id !== p.id) }));
+                          }
+                        }} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors"
                           style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)' }}>Del</button>
                       </div>
                     </td>
@@ -234,18 +251,10 @@ export default function Inventory() {
           <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
             Showing {filtered.length} of {prods.length} products
           </span>
-          <div className="flex gap-1">
-            {['‹', '1', '2', '›'].map((p) => (
-              <button key={p} className="px-2 py-1 rounded-lg text-xs"
-                style={{ background: p === '1' ? 'var(--primary)' : 'var(--muted)', color: p === '1' ? 'white' : 'var(--foreground)' }}>
-                {p}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
-      {showModal && <AddModal onClose={() => setShowModal(false)} onSave={handleAdd} />}
+      {showModal && <AddModal product={editing} onClose={() => { setShowModal(false); setEditing(null); }} onSave={handleSave} />}
     </div>
   );
 }

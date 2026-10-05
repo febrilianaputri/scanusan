@@ -67,12 +67,6 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
               style={{ background: 'var(--primary)' }}>
               {user.name[0]}
             </div>
-            {editing && (
-              <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center text-xs"
-                style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--primary)' }}>
-                ✏
-              </button>
-            )}
           </div>
           <div>
             <div className="font-display font-bold text-lg" style={{ color: 'var(--foreground)' }}>{user.name}</div>

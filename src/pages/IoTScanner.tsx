@@ -74,16 +74,6 @@ export default function IoTScanner() {
               </div>
             )}
 
-            <button
-              className="w-full py-2.5 rounded-xl text-sm font-semibold font-body transition-all"
-              style={{
-                background: 'var(--muted)',
-                border: '1px solid var(--border)',
-                color: 'var(--primary)',
-              }}
-            >
-              View Details →
-            </button>
           </div>
         ))}
       </div>

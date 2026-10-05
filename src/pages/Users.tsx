@@ -1,10 +1,40 @@
-import { users } from '../data/mockData';
+import { useAppData } from '../data/AppDataContext';
+import type { User } from '../types';
 
 export default function Users() {
+  const { data, setData } = useAppData();
+
+  const addUser = () => {
+    const name = window.prompt('User name')?.trim();
+    if (!name) return;
+    const email = window.prompt('User email')?.trim();
+    if (!email || !email.includes('@')) return;
+    const role = window.prompt('Role: admin or operator', 'operator')?.trim().toLowerCase();
+    if (role !== 'admin' && role !== 'operator') return;
+    const user: User = {
+      id: `user-${Date.now()}`,
+      name,
+      email,
+      role,
+      status: 'active',
+      lastActivity: 'Just added',
+    };
+    setData((current) => ({ ...current, users: [...current.users, user] }));
+  };
+
+  const editUser = (user: User) => {
+    const role = window.prompt('Role: admin or operator', user.role)?.trim().toLowerCase();
+    if (role !== 'admin' && role !== 'operator') return;
+    setData((current) => ({
+      ...current,
+      users: current.users.map((item) => item.id === user.id ? { ...item, role } : item),
+    }));
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end">
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
+        <button onClick={addUser} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
           style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
           + Add User
         </button>
@@ -23,7 +53,7 @@ export default function Users() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {data.users.map((u) => (
                 <tr key={u.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--muted)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
@@ -56,9 +86,14 @@ export default function Users() {
                   <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{u.lastActivity}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      <button className="px-2 py-1 rounded-lg text-xs font-semibold"
+                      <button onClick={() => editUser(u)} className="px-2 py-1 rounded-lg text-xs font-semibold"
                         style={{ background: 'var(--muted)', color: 'var(--primary)' }}>Edit</button>
-                      <button className="px-2 py-1 rounded-lg text-xs font-semibold"
+                      <button onClick={() => {
+                        if (u.id === 'u1') return;
+                        if (window.confirm(`Delete ${u.name}?`)) {
+                          setData((current) => ({ ...current, users: current.users.filter((item) => item.id !== u.id) }));
+                        }
+                      }} className="px-2 py-1 rounded-lg text-xs font-semibold"
                         style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)' }}>Del</button>
                     </div>
                   </td>

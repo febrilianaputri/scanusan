@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import AuthBackground from '../../components/AuthBackground';
-import type { AuthPage, Theme } from '../../types';
+import type { AuthPage, AuthUser, Theme } from '../../types';
 
 type RegState = 'default' | 'loading' | 'error' | 'success';
 
@@ -8,6 +8,7 @@ interface RegisterProps {
   theme: Theme;
   onThemeToggle: () => void;
   onNavigate: (page: AuthPage) => void;
+  onRegister: (user: AuthUser) => void;
 }
 
 function passwordStrength(pw: string): { label: string; color: string; width: string } {
@@ -17,7 +18,7 @@ function passwordStrength(pw: string): { label: string; color: string; width: st
   return { label: 'Strong', color: 'var(--success)', width: '100%' };
 }
 
-export default function Register({ theme, onThemeToggle, onNavigate }: RegisterProps) {
+export default function Register({ theme, onThemeToggle, onNavigate, onRegister }: RegisterProps) {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -42,7 +43,15 @@ export default function Register({ theme, onThemeToggle, onNavigate }: RegisterP
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); setState('error'); return; }
     setState('loading');
-    setTimeout(() => setState('success'), 1500);
+    setTimeout(() => {
+      setState('success');
+      onRegister({
+        id: `u-${Date.now()}`,
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        role: 'operator',
+      });
+    }, 500);
   };
 
   const field = (

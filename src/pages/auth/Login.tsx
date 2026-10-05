@@ -8,7 +8,7 @@ interface LoginProps {
   theme: Theme;
   onThemeToggle: () => void;
   onNavigate: (page: AuthPage) => void;
-  onLogin: (user: AuthUser) => void;
+  onLogin: (user: AuthUser, remember: boolean) => void;
 }
 
 const DEMO_ADMIN: AuthUser = {
@@ -35,10 +35,10 @@ export default function Login({ theme, onThemeToggle, onNavigate, onLogin }: Log
     setTimeout(() => {
       if (email === 'admin@kami.inv' && password === 'admin123') {
         setState('success');
-        setTimeout(() => onLogin(DEMO_ADMIN), 800);
+        setTimeout(() => onLogin(DEMO_ADMIN, remember), 800);
       } else if (email === 'operator@kami.inv' && password === 'op123') {
         setState('success');
-        setTimeout(() => onLogin(DEMO_OPERATOR), 800);
+        setTimeout(() => onLogin(DEMO_OPERATOR, remember), 800);
       } else {
         setState('error');
         setErrorMsg('Invalid email or password.');
@@ -204,14 +204,7 @@ export default function Login({ theme, onThemeToggle, onNavigate, onLogin }: Log
             {/* Remember + Forgot */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <div onClick={() => setRemember(!remember)}
-                  className="w-4 h-4 rounded flex items-center justify-center cursor-pointer"
-                  style={{
-                    background: remember ? 'var(--primary)' : 'var(--card)',
-                    border: `1px solid ${remember ? 'var(--primary)' : 'var(--border)'}`,
-                  }}>
-                  {remember && <span className="text-white text-xs">✓</span>}
-                </div>
+                <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="accent-green-600" />
                 <span className="text-xs font-body" style={{ color: 'var(--muted-foreground)' }}>Remember me</span>
               </label>
               <button type="button" onClick={() => onNavigate('forgot-password')}
@@ -242,12 +235,12 @@ export default function Login({ theme, onThemeToggle, onNavigate, onLogin }: Log
             </div>
 
             {/* Google */}
-            <button type="button"
+            <button type="button" onClick={() => { setEmail('admin@kami.inv'); setPassword('admin123'); setState('default'); setErrorMsg(''); }}
               className="w-full py-3 rounded-xl text-sm font-semibold font-body flex items-center justify-center gap-2 transition-all"
               style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--muted)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--card)')}>
-              <span>G</span> Continue with Google
+              <span>↳</span> Fill Demo Admin Credentials
             </button>
           </form>
 

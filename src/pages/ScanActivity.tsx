@@ -1,15 +1,17 @@
-import { transactions } from '../data/mockData';
+import { useAppData } from '../data/AppDataContext';
 
 export default function ScanActivity() {
+  const { data } = useAppData();
+  const activeScanners = new Set(data.transactions.map((transaction) => transaction.scanner)).size;
   return (
     <div className="flex flex-col gap-4">
       {/* Summary bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total Scans Today', value: '248', color: 'var(--primary)' },
-          { label: 'Successful', value: '241', color: 'var(--success)' },
-          { label: 'Failed', value: '7', color: 'var(--danger)' },
-          { label: 'Active Scanners', value: '1/2', color: 'var(--info)' },
+          { label: 'Total Scans', value: String(data.transactions.length), color: 'var(--primary)' },
+          { label: 'Successful', value: String(data.transactions.length), color: 'var(--success)' },
+          { label: 'Failed', value: '0', color: 'var(--danger)' },
+          { label: 'Active Scanners', value: String(activeScanners), color: 'var(--info)' },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <div className="font-display font-bold text-2xl" style={{ color: s.color }}>{s.value}</div>
@@ -39,7 +41,7 @@ export default function ScanActivity() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx, i) => (
+              {data.transactions.map((tx, i) => (
                 <tr
                   key={tx.id}
                   className="transition-colors"
@@ -48,7 +50,7 @@ export default function ScanActivity() {
                   onMouseLeave={(e) => (e.currentTarget.style.background = i === 0 ? 'color-mix(in srgb, var(--primary) 5%, transparent)' : 'transparent')}
                 >
                   <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
-                    {String(transactions.length - i).padStart(3, '0')}
+                    {String(data.transactions.length - i).padStart(3, '0')}
                   </td>
                   <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>{tx.time}</td>
                   <td className="px-4 py-3 text-xs font-semibold" style={{ color: 'var(--primary)' }}>{tx.scanner}</td>

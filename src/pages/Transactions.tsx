@@ -1,17 +1,22 @@
 import { useState } from 'react';
-import { transactions } from '../data/mockData';
+import { useAppData } from '../data/AppDataContext';
 
 type Tab = 'all' | 'in' | 'out';
 
 export default function Transactions() {
+  const { data } = useAppData();
   const [tab, setTab] = useState<Tab>('all');
   const [search, setSearch] = useState('');
+  const [scanner, setScanner] = useState('All Scanners');
+  const [user, setUser] = useState('All Users');
 
-  const filtered = transactions.filter((tx) => {
+  const filtered = data.transactions.filter((tx) => {
     const matchTab = tab === 'all' || tx.type === tab;
     const matchSearch = tx.product.toLowerCase().includes(search.toLowerCase()) || tx.barcode.includes(search);
-    return matchTab && matchSearch;
+    return matchTab && matchSearch && (scanner === 'All Scanners' || tx.scanner === scanner) && (user === 'All Users' || tx.user === user);
   });
+  const scanners = [...new Set(data.transactions.map((transaction) => transaction.scanner))];
+  const users = [...new Set(data.transactions.map((transaction) => transaction.user))];
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,17 +51,15 @@ export default function Transactions() {
             style={{ color: 'var(--foreground)' }}
           />
         </div>
-        <select className="px-3 py-2 rounded-xl text-sm font-body outline-none"
+        <select value={scanner} onChange={(event) => setScanner(event.target.value)} className="px-3 py-2 rounded-xl text-sm font-body outline-none"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
           <option>All Scanners</option>
-          <option>Scanner-01</option>
-          <option>Scanner-02</option>
+          {scanners.map((value) => <option key={value}>{value}</option>)}
         </select>
-        <select className="px-3 py-2 rounded-xl text-sm font-body outline-none"
+        <select value={user} onChange={(event) => setUser(event.target.value)} className="px-3 py-2 rounded-xl text-sm font-body outline-none"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
           <option>All Users</option>
-          <option>admin</option>
-          <option>operator1</option>
+          {users.map((value) => <option key={value}>{value}</option>)}
         </select>
       </div>
 
@@ -84,7 +87,7 @@ export default function Transactions() {
                 >
                   <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>{tx.time}</td>
                   <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
-                    {tx.barcode.slice(0, 9)}...
+                    {tx.barcode}
                   </td>
                   <td className="px-4 py-3 font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{tx.product}</td>
                   <td className="px-4 py-3">

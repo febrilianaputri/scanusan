@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Theme, Page, AuthUser } from '../types';
+import { useAppData } from '../data/AppDataContext';
 
 const pageTitles: Record<Page, { title: string; subtitle: string }> = {
   dashboard: { title: 'Dashboard', subtitle: 'Overview of your inventory and scanner activity' },
@@ -56,13 +57,31 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
 }
 
 export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle, user, onNavigate, onLogout }: TopbarProps) {
+  const { data } = useAppData();
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
   const { title, subtitle } = pageTitles[currentPage];
+  const notifications = data.products
+    .filter((product) => product.status === 'low' || product.status === 'out')
+    .map((product) => ({
+      msg: product.currentStock === 0
+        ? `${product.name} is out of stock`
+        : `${product.name} stock is low (${product.currentStock} ${product.unit})`,
+      color: product.currentStock === 0 ? 'var(--danger)' : 'var(--warning)',
+    }));
+  const searchResults = searchQuery.trim()
+    ? Object.entries(pageTitles).filter(([, page]) => `${page.title} ${page.subtitle}`.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : [];
+
+  const navigateToSearchResult = (page: string) => {
+    onNavigate(page as Page);
+    setSearchQuery('');
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -92,11 +111,33 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
         <div className="flex-1" />
 
         {/* Search */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-sm w-52"
-          style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
-          <span style={{ color: 'var(--muted-foreground)' }}>🔍</span>
-          <input placeholder="Search..." className="bg-transparent outline-none w-full text-sm font-body"
-            style={{ color: 'var(--foreground)' }} />
+        <div className="hidden md:block relative w-52">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
+            style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
+            <span style={{ color: 'var(--muted-foreground)' }}>🔍</span>
+            <input
+              placeholder="Find a page..."
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Enter' && searchResults[0]) navigateToSearchResult(searchResults[0][0]); }}
+              className="bg-transparent outline-none w-full text-sm font-body"
+              style={{ color: 'var(--foreground)' }}
+              aria-label="Search pages"
+            />
+          </div>
+          {searchResults.length > 0 && (
+            <div className="absolute top-11 left-0 right-0 rounded-xl shadow-lg z-50 overflow-hidden"
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+              {searchResults.map(([page, details]) => (
+                <button key={page} onClick={() => navigateToSearchResult(page)}
+                  className="block w-full text-left px-3 py-2.5 text-sm font-body"
+                  style={{ color: 'var(--foreground)', borderBottom: '1px solid var(--border)' }}>
+                  <span className="block font-semibold">{details.title}</span>
+                  <span className="block text-xs" style={{ color: 'var(--muted-foreground)' }}>{details.subtitle}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Theme */}
@@ -112,8 +153,8 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
           <button onClick={() => { setShowNotif(!showNotif); setShowProfile(false); }}
             className="relative p-2 rounded-lg" style={{ color: 'var(--foreground)' }}>
             🔔
-            <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-white flex items-center justify-center"
-              style={{ background: 'var(--danger)', fontSize: '9px' }}>3</span>
+            {notifications.length > 0 && <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-white flex items-center justify-center"
+              style={{ background: 'var(--danger)', fontSize: '9px' }}>{notifications.length}</span>}
           </button>
           {showNotif && (
             <div className="absolute right-0 top-12 w-72 rounded-xl shadow-lg z-50 overflow-hidden"
@@ -121,18 +162,15 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
               <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
                 <span className="font-display font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Notifications</span>
               </div>
-              {[
-                { msg: 'RJ45 Connector stock is low (8 pcs)', color: 'var(--warning)', time: '2 min ago' },
-                { msg: 'USB-C Adapter below minimum stock', color: 'var(--warning)', time: '18 min ago' },
-                { msg: 'HDMI Cable 2m out of stock', color: 'var(--danger)', time: '1h ago' },
-              ].map((n, i) => (
-                <div key={i} className="px-4 py-3 flex gap-3 items-start" style={{ borderBottom: '1px solid var(--border)' }}>
+              {notifications.length === 0 && <p className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>No active inventory alerts.</p>}
+              {notifications.map((n) => (
+                <button key={n.msg} onClick={() => { onNavigate('inventory'); setShowNotif(false); }} className="w-full text-left px-4 py-3 flex gap-3 items-start" style={{ borderBottom: '1px solid var(--border)' }}>
                   <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.color }} />
                   <div>
                     <p className="text-xs font-body" style={{ color: 'var(--foreground)' }}>{n.msg}</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{n.time}</p>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Open inventory</p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}

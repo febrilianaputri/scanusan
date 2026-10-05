@@ -42,7 +42,7 @@ export default function ForgotPassword({ theme, onThemeToggle, onNavigate }: For
                 style={{ background: 'color-mix(in srgb, var(--primary) 12%, transparent)' }}>🔑</div>
               <h1 className="font-display font-bold text-2xl mb-1" style={{ color: 'var(--foreground)' }}>Forgot Password?</h1>
               <p className="text-sm font-body mb-6" style={{ color: 'var(--muted-foreground)' }}>
-                Enter your email address and we'll send you a password reset link.
+                Enter your account email. Password recovery requires an administrator in this local demo.
               </p>
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div>
@@ -74,13 +74,13 @@ export default function ForgotPassword({ theme, onThemeToggle, onNavigate }: For
             <div className="text-center flex flex-col items-center gap-4">
               <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
                 style={{ background: 'rgba(106,168,79,0.12)' }}>✉</div>
-              <h2 className="font-display font-bold text-xl" style={{ color: 'var(--foreground)' }}>Reset link sent</h2>
+              <h2 className="font-display font-bold text-xl" style={{ color: 'var(--foreground)' }}>Recovery unavailable</h2>
               <p className="text-sm font-body" style={{ color: 'var(--muted-foreground)' }}>
-                Check your email at <strong style={{ color: 'var(--foreground)' }}>{email}</strong> for further instructions.
+                Email delivery is not configured, so no reset link was sent to <strong style={{ color: 'var(--foreground)' }}>{email}</strong>. Contact an administrator to restore access.
               </p>
               <div className="h-px w-full" style={{ background: 'var(--border)' }} />
               <p className="text-xs font-body" style={{ color: 'var(--muted-foreground)' }}>
-                Didn't receive it? Check your spam folder or{' '}
+                Need to use another address?{' '}
                 <button onClick={() => setSent(false)} className="font-semibold" style={{ color: 'var(--primary)' }}>
                   try again
                 </button>.

@@ -5,6 +5,7 @@ interface AccountSettingsProps {
   user: AuthUser;
   theme: Theme;
   onThemeChange: (t: Theme) => void;
+  onUpdate: (user: AuthUser) => void;
 }
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -33,33 +34,14 @@ const Toggle = ({ label, sub, defaultOn = false }: { label: string; sub?: string
   );
 };
 
-export default function AccountSettings({ user, theme, onThemeChange }: AccountSettingsProps) {
-  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
-  const [showPw, setShowPw] = useState(false);
-  const [pwSaved, setPwSaved] = useState(false);
-
-  const handlePwSave = () => {
-    if (!pwForm.current || !pwForm.next || pwForm.next !== pwForm.confirm) return;
-    setPwSaved(true);
-    setPwForm({ current: '', next: '', confirm: '' });
-    setTimeout(() => setPwSaved(false), 2000);
+export default function AccountSettings({ user, theme, onThemeChange, onUpdate }: AccountSettingsProps) {
+  const [profile, setProfile] = useState({ name: user.name, email: user.email, phone: user.phone || '', position: user.position || '' });
+  const [profileSaved, setProfileSaved] = useState(false);
+  const saveProfile = () => {
+    onUpdate({ ...user, ...profile });
+    setProfileSaved(true);
+    window.setTimeout(() => setProfileSaved(false), 2500);
   };
-
-  const pwInput = (label: string, field: keyof typeof pwForm) => (
-    <div>
-      <label className="block text-xs font-semibold mb-1.5 font-body" style={{ color: 'var(--muted-foreground)' }}>{label}</label>
-      <input
-        type={showPw ? 'text' : 'password'}
-        value={pwForm[field]}
-        onChange={(e) => setPwForm({ ...pwForm, [field]: e.target.value })}
-        placeholder="••••••••"
-        className="w-full px-3 py-2.5 rounded-xl text-sm font-body outline-none"
-        style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
-        onFocus={(e) => (e.target.style.borderColor = 'var(--primary)')}
-        onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
-      />
-    </div>
-  );
 
   return (
     <div className="max-w-2xl flex flex-col gap-4">
@@ -72,19 +54,18 @@ export default function AccountSettings({ user, theme, onThemeChange }: AccountS
           <div>
             <div className="font-display font-semibold" style={{ color: 'var(--foreground)' }}>{user.name}</div>
             <div className="text-sm font-body" style={{ color: 'var(--muted-foreground)' }}>{user.email}</div>
-            <button className="text-xs font-semibold mt-1" style={{ color: 'var(--primary)' }}>Change photo</button>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { label: 'Full Name', value: user.name },
-            { label: 'Email', value: user.email },
-            { label: 'Phone', value: user.phone || '' },
-            { label: 'Position', value: user.position || '' },
+            { label: 'Full Name', key: 'name' as const },
+            { label: 'Email', key: 'email' as const },
+            { label: 'Phone', key: 'phone' as const },
+            { label: 'Position', key: 'position' as const },
           ].map((f) => (
             <div key={f.label}>
               <label className="block text-xs font-semibold mb-1.5 font-body" style={{ color: 'var(--muted-foreground)' }}>{f.label}</label>
-              <input defaultValue={f.value} className="w-full px-3 py-2.5 rounded-xl text-sm font-body outline-none"
+              <input value={profile[f.key]} onChange={(event) => setProfile({ ...profile, [f.key]: event.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm font-body outline-none"
                 style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
                 onFocus={(e) => (e.target.style.borderColor = 'var(--primary)')}
                 onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
@@ -92,8 +73,9 @@ export default function AccountSettings({ user, theme, onThemeChange }: AccountS
             </div>
           ))}
         </div>
+        {profileSaved && <p role="status" className="text-xs" style={{ color: 'var(--success)' }}>Profile saved.</p>}
         <div className="flex justify-end">
-          <button className="px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
+          <button onClick={saveProfile} className="px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
             style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
             Save Profile
           </button>
@@ -101,26 +83,8 @@ export default function AccountSettings({ user, theme, onThemeChange }: AccountS
       </Section>
 
       <Section title="SECURITY">
-        {pwSaved && (
-          <div className="rounded-xl px-3 py-2.5 text-sm"
-            style={{ background: 'rgba(106,168,79,0.1)', border: '1px solid rgba(106,168,79,0.3)', color: 'var(--success)' }}>
-            ✓ Password updated successfully
-          </div>
-        )}
         <h3 className="font-semibold text-sm font-body -mb-2" style={{ color: 'var(--foreground)' }}>Change Password</h3>
-        <label className="flex items-center gap-2 cursor-pointer -mb-2">
-          <input type="checkbox" checked={showPw} onChange={() => setShowPw(!showPw)} className="accent-green-600" />
-          <span className="text-xs font-body" style={{ color: 'var(--muted-foreground)' }}>Show passwords</span>
-        </label>
-        {pwInput('Current Password', 'current')}
-        {pwInput('New Password', 'next')}
-        {pwInput('Confirm New Password', 'confirm')}
-        <div className="flex justify-end">
-          <button onClick={handlePwSave} className="px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-            Update Password
-          </button>
-        </div>
+        <p className="text-xs font-body" style={{ color: 'var(--muted-foreground)' }}>Password updates require a configured identity service; credentials are not stored by this local demo.</p>
         <div className="h-px" style={{ background: 'var(--border)' }} />
         <Toggle label="Two-Factor Authentication" sub="Add an extra layer of security to your account" />
         <div>
@@ -148,10 +112,10 @@ export default function AccountSettings({ user, theme, onThemeChange }: AccountS
         <div>
           <div className="text-xs font-semibold mb-2 font-body" style={{ color: 'var(--muted-foreground)' }}>Theme</div>
           <div className="grid grid-cols-3 gap-2">
-            {(['light', 'dark', 'system'] as const).map((t) => (
-              <button key={t} onClick={() => t !== 'system' && onThemeChange(t)}
+            {(['light', 'dark'] as const).map((t) => (
+              <button key={t} onClick={() => onThemeChange(t)}
                 className="py-3 rounded-xl flex flex-col items-center gap-1 text-xs font-semibold font-body transition-all"
-                style={theme === t || (t === 'system')
+                style={theme === t
                   ? { background: t === theme ? 'var(--primary)' : 'var(--muted)', color: t === theme ? 'var(--primary-foreground)' : 'var(--foreground)', border: `2px solid ${t === theme ? 'var(--primary)' : 'var(--border)'}` }
                   : { background: 'var(--muted)', color: 'var(--foreground)', border: '2px solid var(--border)' }}>
                 <span className="text-lg">{t === 'light' ? '☀' : t === 'dark' ? '🌙' : '◐'}</span>
@@ -159,20 +123,6 @@ export default function AccountSettings({ user, theme, onThemeChange }: AccountS
               </button>
             ))}
           </div>
-        </div>
-      </Section>
-
-      <Section title="LANGUAGE">
-        <div className="grid grid-cols-2 gap-2">
-          {[{ code: 'en', label: 'English', flag: '🇺🇸' }, { code: 'id', label: 'Bahasa Indonesia', flag: '🇮🇩' }].map((lang, i) => (
-            <button key={lang.code}
-              className="py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold font-body"
-              style={i === 0
-                ? { background: 'var(--primary)', color: 'var(--primary-foreground)', border: '2px solid var(--primary)' }
-                : { background: 'var(--muted)', color: 'var(--foreground)', border: '2px solid var(--border)' }}>
-              <span>{lang.flag}</span> {lang.label}
-            </button>
-          ))}
         </div>
       </Section>
 
@@ -185,13 +135,9 @@ export default function AccountSettings({ user, theme, onThemeChange }: AccountS
           <div>
             <div className="font-semibold text-sm font-body" style={{ color: 'var(--foreground)' }}>Delete Account</div>
             <div className="text-xs font-body" style={{ color: 'var(--muted-foreground)' }}>
-              Permanently delete your account and all associated data. This action cannot be undone.
+              Account deletion requires a configured identity service and is unavailable in this local demo.
             </div>
           </div>
-          <button className="ml-4 px-4 py-2.5 rounded-xl text-sm font-semibold font-body shrink-0"
-            style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)', border: '1px solid rgba(217,83,79,0.3)' }}>
-            Delete Account
-          </button>
         </div>
       </div>
     </div>

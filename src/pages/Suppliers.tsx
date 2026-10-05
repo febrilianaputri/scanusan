@@ -1,13 +1,42 @@
 import { useState } from 'react';
-import { suppliers as initialSuppliers } from '../data/mockData';
+import { useAppData } from '../data/AppDataContext';
+import type { Supplier } from '../types';
 
 export default function Suppliers() {
-  const [supps] = useState(initialSuppliers);
+  const { data, setData } = useAppData();
+  const supps = data.suppliers;
+
+  const addSupplier = () => {
+    const name = window.prompt('Supplier name')?.trim();
+    if (!name) return;
+    const contact = window.prompt('Contact email or phone')?.trim();
+    if (!contact) return;
+    const supplier: Supplier = {
+      id: `sup-${Date.now()}`,
+      name,
+      contact,
+      products: 0,
+      lastTransaction: 'No transactions yet',
+      status: 'active',
+    };
+    setData((current) => ({ ...current, suppliers: [...current.suppliers, supplier] }));
+  };
+
+  const editSupplier = (supplier: Supplier) => {
+    const name = window.prompt('Supplier name', supplier.name)?.trim();
+    if (!name) return;
+    const contact = window.prompt('Contact email or phone', supplier.contact)?.trim();
+    if (!contact) return;
+    setData((current) => ({
+      ...current,
+      suppliers: current.suppliers.map((item) => item.id === supplier.id ? { ...item, name, contact } : item),
+    }));
+  };
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end">
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
+        <button onClick={addSupplier} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
           style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
           + Add Supplier
         </button>
@@ -40,7 +69,9 @@ export default function Suppliers() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{s.contact}</td>
-                  <td className="px-4 py-3 font-semibold" style={{ color: 'var(--foreground)' }}>{s.products}</td>
+                  <td className="px-4 py-3 font-semibold" style={{ color: 'var(--foreground)' }}>
+                    {data.products.filter((product) => product.supplier === s.name).length}
+                  </td>
                   <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{s.lastTransaction}</td>
                   <td className="px-4 py-3">
                     <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
@@ -52,9 +83,13 @@ export default function Suppliers() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      <button className="px-2 py-1 rounded-lg text-xs font-semibold"
+                      <button onClick={() => editSupplier(s)} className="px-2 py-1 rounded-lg text-xs font-semibold"
                         style={{ background: 'var(--muted)', color: 'var(--primary)' }}>Edit</button>
-                      <button className="px-2 py-1 rounded-lg text-xs font-semibold"
+                      <button onClick={() => {
+                        if (window.confirm(`Delete ${s.name}?`)) {
+                          setData((current) => ({ ...current, suppliers: current.suppliers.filter((item) => item.id !== s.id) }));
+                        }
+                      }} className="px-2 py-1 rounded-lg text-xs font-semibold"
                         style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)' }}>Del</button>
                     </div>
                   </td>
