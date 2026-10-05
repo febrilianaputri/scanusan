@@ -16,7 +16,6 @@ const navItems: NavSection[] = [
     section: 'MONITORING',
     items: [
       { id: 'iot-scanner', label: 'IoT Scanner', icon: '📡' },
-      { id: 'scan-activity', label: 'Scan Activity', icon: '◎' },
       { id: 'reports', label: 'Reports', icon: '📊', roles: ['admin'] },
     ],
   },
