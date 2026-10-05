@@ -188,14 +188,15 @@ export default function Register({ theme, onThemeToggle, onNavigate, onRegister 
               {state === 'loading' ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
-        </div>
 
-        <p className="text-center text-xs font-body mt-4 text-white/80">
+          <p className="text-center text-xs font-body mt-6" style={{ color: 'var(--muted-foreground)' }}>
           Already have an account?{' '}
-          <button onClick={() => onNavigate('login')} className="font-semibold" style={{ color: 'var(--primary)' }}>
+          <button onClick={() => onNavigate('login')} 
+          className="font-semibold" style={{ color: 'var(--primary)' }}>
             Sign In
           </button>
-        </p>
+          </p>
+        </div>
       </div>
     </div>
     </AuthBackground>

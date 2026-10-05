@@ -48,58 +48,20 @@ export default function Login({ theme, onThemeToggle, onNavigate, onLogin }: Log
 
   return (
     <AuthBackground>
-    <div className="min-h-screen flex">
-      {/* Left — brand panel */}
-      <div
-        className="hidden lg:flex flex-col justify-between w-[480px] shrink-0 p-12"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white text-sm">
-            KI
+    <div  className="min-h-screen flex flex-col items-center justify-center p-6 lg:p-12">
+      <div className="w-full max-w-md">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-sm"
+              style={{ background: 'var(--primary)' }}>KI</div>
+            <span className="font-display font-bold text-lg text-white">KAMI Inventory</span>
           </div>
-          <div>
-            <div className="font-display font-bold text-white text-lg leading-tight">KAMI Inventory</div>
-            <div className="text-white/70 text-xs">Inventory Management</div>
-          </div>
+          <button onClick={onThemeToggle}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold font-body"
+              style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
+              {theme === 'light' ? '🌙 Dark' : '☀ Light'}
+          </button>
         </div>
-
-        <div className="flex flex-col gap-6">
-          {/* Illustration */}
-          <div
-            className="rounded-3xl p-8 flex flex-col items-center justify-center gap-4"
-            style={{ background: 'rgba(255,255,255,0.1)' }}
-          >
-            <div className="grid grid-cols-3 gap-3 opacity-80">
-              {['📦','📡','🏭','↑','◎','↓','📊','⚙','📋'].map((icon, i) => (
-                <div key={i} className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-2xl">
-                  {icon}
-                </div>
-              ))}
-            </div>
-            <div className="text-center mt-2">
-              <div className="font-display font-bold text-white text-xl">Smart Inventory Management</div>
-              <div className="text-white/70 text-sm mt-1 leading-relaxed">
-                Manage inventory, track stock movement, and connect your IoT barcode scanner in real time.
-              </div>
-            </div>
-          </div>
-
-          {/* Feature list */}
-          <div className="flex flex-col gap-3">
-            {[
-              { icon: '📡', text: 'Real-time IoT barcode scanning' },
-              { icon: '📊', text: 'Live stock movement analytics' },
-              { icon: '🔔', text: 'Instant low-stock alerts' },
-            ].map((f) => (
-              <div key={f.text} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-base">{f.icon}</div>
-                <span className="text-white/80 text-sm font-body">{f.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="text-white/40 text-xs">© 2026 KAMI Inventory · v2.4.1</div>
       </div>
 
       {/* Right — form */}
@@ -115,11 +77,6 @@ export default function Login({ theme, onThemeToggle, onNavigate, onLogin }: Log
           style={{ background: 'color-mix(in srgb, var(--card) 88%, transparent)', border: '1px solid var(--border)' }}>
           {/* Theme toggle */}
           <div className="flex justify-end mb-6">
-            <button onClick={onThemeToggle}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold font-body"
-              style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
-              {theme === 'light' ? '🌙 Dark' : '☀ Light'}
-            </button>
           </div>
 
           <h1 className="font-display font-bold text-2xl mb-1" style={{ color: 'var(--foreground)' }}>
