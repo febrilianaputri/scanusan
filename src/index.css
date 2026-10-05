@@ -1,0 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-sidebar: var(--sidebar);
+}
+
+:root {
+  --background: #F8F3EA;
+  --foreground: #0B1957;
+  --card: #FFFDF9;
+  --card-foreground: #0B1957;
+  --primary: #0B1957;
+  --primary-foreground: #F8F3EA;
+  --secondary: #E6D8C7;
+  --secondary-foreground: #2A3670;
+  --muted: #EFE6DA;
+  --muted-foreground: #6B7193;
+  --accent: #9ECCFA;
+  --accent-foreground: #0B1957;
+  --border: #E0D2C0;
+  --ring: #9ECCFA;
+  --success: #2E9E6B;
+  --warning: #D99A2B;
+  --danger: #D9534F;
+  --info: #4A8FDB;
+  --sidebar: #FFFDF9;
+  --gold: #C9A97E;
+  --brown: #8A7A66;
+  --radius: 12px;
+}
+
+.dark {
+  --background: #070F36;
+  --foreground: #F8F3EA;
+  --card: #0E1D5E;
+  --card-foreground: #F8F3EA;
+  --primary: #9ECCFA;
+  --primary-foreground: #0B1957;
+  --secondary: #16266E;
+  --secondary-foreground: #E6D8C7;
+  --muted: #142364;
+  --muted-foreground: #A8B2D6;
+  --accent: #E6D8C7;
+  --accent-foreground: #0B1957;
+  --border: #22337C;
+  --ring: #9ECCFA;
+  --success: #5FCB98;
+  --warning: #F0BE5C;
+  --danger: #F07470;
+  --info: #9ECCFA;
+  --sidebar: #0B1957;
+  --gold: #E6D8C7;
+  --brown: #C9B8A2;
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif;
+}
+
+.font-display {
+  font-family: 'Poppins', sans-serif;
+}
+
+.font-body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Recharts theme overrides */
+.recharts-cartesian-axis-tick-value {
+  fill: var(--muted-foreground);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  color: var(--foreground) !important;
+}

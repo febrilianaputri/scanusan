@@ -1,0 +1,10 @@
+{
+  "description": "Streamline inventory tracking with real-time updates via IoT barcode scanning, enhancing accuracy and efficiency for businesses managing stock.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
