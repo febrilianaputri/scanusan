@@ -1,0 +1,27 @@
+mutation SeedDatabase @transaction {
+  category_insertMany(data: [
+    { name: "Electronics" },
+    { name: "Kitchen" },
+    { name: "Furniture" }
+  ])
+  product_insertMany(data: [
+    { name: "Laptop", sku: "LAP-001", currentQuantity: 50, minThreshold: 10, category: { id: "00000000-0000-0000-0000-000000000000" } },
+    { name: "Blender", sku: "BLN-002", currentQuantity: 20, minThreshold: 5, category: { id: "00000000-0000-0000-0000-000000000001" } },
+    { name: "Desk", sku: "DSK-003", currentQuantity: 10, minThreshold: 2, category: { id: "00000000-0000-0000-0000-000000000002" } }
+  ])
+  location_insertMany(data: [
+    { name: "Warehouse A", address: "123 Industrial Way", type: "Main" },
+    { name: "Retail Store", address: "456 Main St", type: "Retail" },
+    { name: "Storage Unit", address: "789 Quiet Ln", type: "Remote" }
+  ])
+  inventoryItem_insertMany(data: [
+    { product: { id: "00000000-0000-0000-0000-000000000000" }, location: { id: "00000000-0000-0000-0000-000000000000" }, quantity: 25, binLocation: "A1" },
+    { product: { id: "00000000-0000-0000-0000-000000000001" }, location: { id: "00000000-0000-0000-0000-000000000001" }, quantity: 10, binLocation: "B2" },
+    { product: { id: "00000000-0000-0000-0000-000000000002" }, location: { id: "00000000-0000-0000-0000-000000000000" }, quantity: 5, binLocation: "C3" }
+  ])
+  transaction_insertMany(data: [
+    { product: { id: "00000000-0000-0000-0000-000000000000" }, location: { id: "00000000-0000-0000-0000-000000000000" }, changeAmount: 5, transactionType: "RESTOCK", performedBy: "admin" },
+    { product: { id: "00000000-0000-0000-0000-000000000001" }, location: { id: "00000000-0000-0000-0000-000000000001" }, changeAmount: -1, transactionType: "SALE", performedBy: "user1" },
+    { product: { id: "00000000-0000-0000-0000-000000000002" }, location: { id: "00000000-0000-0000-0000-000000000000" }, changeAmount: -2, transactionType: "TRANSFER", performedBy: "admin" }
+  ])
+}

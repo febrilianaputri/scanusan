@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 
-// Default backdrop — replace this URL to change the default image for Sign In & Register.
+// Default backdrop — replace this URL to change the default image for Sign In.
 export const DEFAULT_AUTH_BG =
   'https://images.unsplash.com/photo-1644079446600-219068676743?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920';
 

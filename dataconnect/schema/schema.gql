@@ -1,0 +1,36 @@
+type Category @table {
+  name: String!
+  parentCategory: Category
+}
+
+type Product @table {
+  name: String!
+  sku: String!
+  currentQuantity: Int!
+  minThreshold: Int!
+  description: String
+  imageUrl: String
+  category: Category
+}
+
+type Location @table {
+  name: String!
+  address: String
+  type: String
+}
+
+type InventoryItem @table {
+  product: Product!
+  location: Location!
+  quantity: Int!
+  binLocation: String
+}
+
+type Transaction @table {
+  product: Product!
+  location: Location!
+  changeAmount: Int!
+  transactionType: String!
+  timestamp: Timestamp
+  performedBy: String
+}

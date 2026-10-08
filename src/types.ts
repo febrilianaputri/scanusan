@@ -14,7 +14,7 @@ export type Page =
   | 'profile'
   | 'account-settings';
 
-export type AuthPage = 'login' | 'register' | 'forgot-password';
+export type AuthPage = 'login' | 'forgot-password';
 
 export type UserRole = 'admin' | 'operator';
 

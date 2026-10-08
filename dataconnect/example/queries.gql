@@ -1,0 +1,105 @@
+mutation CreateCategory @auth(level: USER) {
+  category_insert(data: { name: "Electronics" })
+}
+
+mutation UpdateCategory($id: UUID!, $name: String!) @auth(level: USER) {
+  category_update(id: $id, data: { name: $name })
+}
+
+mutation DeleteCategory($id: UUID!) @auth(level: USER) {
+  category_delete(id: $id)
+}
+
+query GetCategory($id: UUID!) @auth(level: USER) {
+  category(id: $id) { name }
+}
+
+query ListCategories @auth(level: USER) {
+  categories { name }
+}
+
+mutation CreateProduct @auth(level: USER) {
+  product_insert(data: { name: "Laptop", sku: "LAP-001", currentQuantity: 10, minThreshold: 2 })
+}
+
+mutation UpdateProduct($id: UUID!, $currentQuantity: Int!) @auth(level: USER) {
+  product_update(id: $id, data: { currentQuantity: $currentQuantity })
+}
+
+mutation DeleteProduct($id: UUID!) @auth(level: USER) {
+  product_delete(id: $id)
+}
+
+query GetProduct($id: UUID!) @auth(level: USER) {
+  product(id: $id) { name sku currentQuantity }
+}
+
+query ListProducts @auth(level: USER) {
+  products { name sku }
+}
+
+mutation CreateLocation @auth(level: USER) {
+  location_insert(data: { name: "Warehouse A", type: "Storage" })
+}
+
+mutation UpdateLocation($id: UUID!, $address: String!) @auth(level: USER) {
+  location_update(id: $id, data: { address: $address })
+}
+
+mutation DeleteLocation($id: UUID!) @auth(level: USER) {
+  location_delete(id: $id)
+}
+
+query GetLocation($id: UUID!) @auth(level: USER) {
+  location(id: $id) { name address }
+}
+
+query ListLocations @auth(level: USER) {
+  locations { name }
+}
+
+mutation CreateInventoryItem($pid: UUID!, $lid: UUID!) @auth(level: USER) {
+  inventoryItem_insert(data: { productId: $pid, locationId: $lid, quantity: 50 })
+}
+
+mutation UpdateInventoryItem($id: UUID!, $quantity: Int!) @auth(level: USER) {
+  inventoryItem_update(id: $id, data: { quantity: $quantity })
+}
+
+mutation DeleteInventoryItem($id: UUID!) @auth(level: USER) {
+  inventoryItem_delete(id: $id)
+}
+
+query GetInventoryItem($id: UUID!) @auth(level: USER) {
+  inventoryItem(id: $id) { quantity binLocation }
+}
+
+query ListInventoryItems @auth(level: USER) {
+  inventoryItems { quantity }
+}
+
+mutation CreateTransaction($pid: UUID!, $lid: UUID!) @auth(level: USER) {
+  transaction_insert(data: { 
+    productId: $pid, 
+    locationId: $lid, 
+    changeAmount: -5, 
+    transactionType: "SALE",
+    performedBy_expr: "auth.uid"
+  })
+}
+
+mutation UpdateTransaction($id: UUID!, $changeAmount: Int!) @auth(level: USER) {
+  transaction_update(id: $id, data: { changeAmount: $changeAmount })
+}
+
+mutation DeleteTransaction($id: UUID!) @auth(level: USER) {
+  transaction_delete(id: $id)
+}
+
+query GetTransaction($id: UUID!) @auth(level: USER) {
+  transaction(id: $id) { changeAmount transactionType timestamp }
+}
+
+query ListTransactions @auth(level: USER) {
+  transactions { transactionType changeAmount }
+}
