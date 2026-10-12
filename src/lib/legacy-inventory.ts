@@ -25,6 +25,7 @@ const fieldNames = {
   transactions: [
     "id",
     "time",
+    "createdAt",
     "barcode",
     "product",
     "type",

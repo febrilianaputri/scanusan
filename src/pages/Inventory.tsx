@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppData } from '../data/AppDataContext';
 import type { Product } from '../types';
+import { useLanguage } from '../i18n';
 
 const categories = ['All', 'Networking', 'Accessories', 'Fiber'];
 
@@ -11,6 +12,7 @@ interface AddModalProps {
 }
 
 function AddModal({ onClose, onSave, product }: AddModalProps) {
+  const { t } = useLanguage();
   const [form, setForm] = useState(() => product ? {
     name: product.name, barcode: product.barcode, category: product.category, unit: product.unit,
     minStock: product.minStock, currentStock: product.currentStock, location: product.location, supplier: product.supplier,
@@ -28,7 +30,7 @@ function AddModal({ onClose, onSave, product }: AddModalProps) {
   const field = (label: string, key: keyof typeof form, type = 'text') => (
     <div>
       <label className="block text-xs font-semibold mb-1 font-body" style={{ color: 'var(--muted-foreground)' }}>
-        {label}
+        {t(label)}
       </label>
       <input
         type={type}
@@ -50,26 +52,26 @@ function AddModal({ onClose, onSave, product }: AddModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
       <div className="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>{product ? 'Edit Product' : 'Add New Product'}</h2>
+          <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>{t(product ? 'Edit Product' : 'Add New Product')}</h2>
           <button onClick={onClose} className="text-lg" style={{ color: 'var(--muted-foreground)' }}>✕</button>
         </div>
         <div className="px-6 py-4 flex flex-col gap-3">
           {field('Product Name', 'name')}
           <div>
             <label className="block text-xs font-semibold mb-1 font-body" style={{ color: 'var(--muted-foreground)' }}>
-              Barcode
+              {t('Barcode')}
             </label>
             <div className="flex gap-2">
               <input
                 value={form.barcode}
                 onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                placeholder="Type or scan barcode, then press Enter"
+                placeholder={t('Type or scan barcode, then press Enter')}
                 className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
                 style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
               />
             </div>
             <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-              A connected scanner can type directly into this field.
+              {t('A connected scanner can type directly into this field.')}
             </p>
           </div>
           {field('Category', 'category')}
@@ -85,14 +87,14 @@ function AddModal({ onClose, onSave, product }: AddModalProps) {
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body"
             style={{ background: 'var(--muted)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
           >
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             onClick={handleSave}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body"
             style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
           >
-            {product ? 'Save Changes' : 'Save Product'}
+            {t(product ? 'Save Changes' : 'Save Product')}
           </button>
         </div>
       </div>
@@ -107,6 +109,7 @@ const statusConfig = {
 };
 
 export default function Inventory() {
+  const { t } = useLanguage();
   const { data, setData } = useAppData();
   const prods = data.products;
   const [search, setSearch] = useState('');
@@ -151,7 +154,7 @@ export default function Inventory() {
           >
             <span style={{ color: 'var(--muted-foreground)' }}>🔍</span>
             <input
-              placeholder="Search products..."
+              placeholder={t('Search products...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent outline-none text-sm font-body w-36"
@@ -172,7 +175,7 @@ export default function Inventory() {
             className="px-3 py-2 rounded-xl text-sm font-body outline-none"
             style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
           >
-            {['All', 'Good', 'Low', 'Out'].map((s) => <option key={s}>{s}</option>)}
+            {['All', 'Good', 'Low', 'Out'].map((s) => <option key={s} value={s}>{t(s)}</option>)}
           </select>
         </div>
         <button
@@ -180,7 +183,7 @@ export default function Inventory() {
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
           style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
         >
-          + Add Product
+          + {t('Add Product')}
         </button>
       </div>
 
@@ -195,7 +198,7 @@ export default function Inventory() {
               <tr style={{ background: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
                 {['Product', 'Barcode', 'Category', 'Current Stock', 'Min Stock', 'Status', 'Location', 'Supplier', 'Actions'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
@@ -224,7 +227,7 @@ export default function Inventory() {
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{p.minStock}</td>
                     <td className="px-4 py-3">
                       <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: s.bg, color: s.color }}>
-                        {s.label}
+                        {t(s.label)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{p.location}</td>
@@ -232,13 +235,13 @@ export default function Inventory() {
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
                         <button onClick={() => { setEditing(p); setShowModal(true); }} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors"
-                          style={{ background: 'var(--muted)', color: 'var(--primary)' }}>Edit</button>
+                          style={{ background: 'var(--muted)', color: 'var(--primary)' }}>{t('Edit')}</button>
                         <button onClick={() => {
-                          if (window.confirm(`Delete ${p.name}?`)) {
+                          if (window.confirm(t('Delete product?').replace('{name}', p.name))) {
                             setData((current) => ({ ...current, products: current.products.filter((product) => product.id !== p.id) }));
                           }
                         }} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors"
-                          style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)' }}>Del</button>
+                          style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)' }}>{t('Delete')}</button>
                       </div>
                     </td>
                   </tr>
@@ -249,7 +252,7 @@ export default function Inventory() {
         </div>
         <div className="px-4 py-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--border)' }}>
           <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-            Showing {filtered.length} of {prods.length} products
+            {t('Showing')} {filtered.length} {t('of')} {prods.length} {t('products')}
           </span>
         </div>
       </div>

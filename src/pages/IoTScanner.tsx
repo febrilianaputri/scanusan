@@ -1,4 +1,5 @@
 import { scanners, transactions } from '../data/mockData';
+import { useLanguage } from '../i18n';
 
 const wifiBars = (level: string) => {
   if (level === 'N/A') return '—';
@@ -8,6 +9,7 @@ const wifiBars = (level: string) => {
 };
 
 export default function IoTScanner() {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-6">
       {/* Scanner cards */}
@@ -41,7 +43,7 @@ export default function IoTScanner() {
                   ? { background: 'rgba(106,168,79,0.12)', color: 'var(--success)' }
                   : { background: 'rgba(217,83,79,0.12)', color: 'var(--danger)' }}
               >
-                {scanner.status === 'online' ? '● Online' : '● Offline'}
+                {scanner.status === 'online' ? `● ${t('Online')}` : `● ${t('Offline')}`}
               </span>
             </div>
 
@@ -49,14 +51,13 @@ export default function IoTScanner() {
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {[
                   { label: 'WiFi Signal', value: wifiBars(scanner.wifi), sub: scanner.wifi },
-                  { label: 'Battery', value: `${scanner.battery}%`, sub: scanner.battery > 20 ? 'Good' : 'Low' },
                   { label: 'Last Scan', value: scanner.lastScan, sub: 'Today' },
                   { label: 'Total Scans', value: scanner.totalScans.toString(), sub: 'Today' },
                   { label: 'IP Address', value: scanner.ipAddress, sub: 'Local' },
                   { label: 'Uptime', value: scanner.uptime, sub: 'Active' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl px-3 py-2.5" style={{ background: 'var(--muted)' }}>
-                    <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{item.label}</div>
+                    <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{t(item.label)}</div>
                     <div className="font-semibold text-sm font-body mt-0.5" style={{ color: 'var(--foreground)' }}>
                       {item.value}
                     </div>
@@ -66,10 +67,10 @@ export default function IoTScanner() {
             ) : (
               <div className="rounded-xl p-4 mb-4 text-center" style={{ background: 'var(--muted)' }}>
                 <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  Last seen: {scanner.lastSeen}
+                  {t('Last seen')}: {scanner.lastSeen}
                 </p>
                 <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>
-                  Device is unreachable. Check power and network.
+                  {t('Device is unreachable. Check power and network.')}
                 </p>
               </div>
             )}
@@ -89,7 +90,7 @@ export default function IoTScanner() {
             <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-400 animate-ping opacity-75"></div>
           </div>
           <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>
-            Live Scan Activity
+            {t('Live Scan Activity')}
           </h2>
         </div>
 
@@ -126,7 +127,7 @@ export default function IoTScanner() {
                   {i === 0 && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
                       style={{ background: 'rgba(93,173,226,0.12)', color: 'var(--info)' }}>
-                      New
+                      {t('New')}
                     </span>
                   )}
                 </div>

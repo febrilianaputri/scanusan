@@ -44,6 +44,7 @@ export interface Product {
 export interface Transaction {
   id: string;
   time: string;
+  createdAt?: string;
   barcode: string;
   product: string;
   type: 'in' | 'out';

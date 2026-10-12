@@ -57,11 +57,13 @@ The app uses a backend login API to verify bcrypt password hashes stored in MySQ
 | `GET /api/data`, `PUT /api/data` | Active employee session; Operators cannot read/manage suppliers or alter transaction history |
 | `POST /api/data/import-legacy` | Active Admin session; one-time import only when server data is empty |
 | `GET /api/users`, `POST /api/users`, `PATCH /api/users/:id`, `POST /api/users/:id/reset-password` | Active Admin session |
-| `GET /api/reports/export.csv` | Active Admin session |
+| `GET /api/reports/categories`, `GET /api/reports/export.xlsx` | Active Admin session |
 
 Every protected request verifies the Firebase session cookie and reloads the active role from MySQL. Session exchange accepts only Firebase tokens authenticated with the custom-token provider. The frontend role checks are only for navigation and user experience; the server is authoritative. Passwords (12-72 UTF-8 bytes) are hashed with bcrypt (work factor 12) in the backend; a user's password is never assigned to a Firebase identity. The browser SDK uses in-memory persistence only; app login state stays in React memory and the session cookie is inaccessible to JavaScript.
 
 On an Admin's first successful sign-in, any old local inventory collections are filtered to known inventory fields and submitted for a one-time import. Legacy local account/session values and any password field are discarded and are never sent to the API. The browser copy is removed only after a successful import; if the import fails or MySQL already contains inventory, the local copy is retained for recovery.
+
+The Reports page exports a formatted XLSX workbook with optional product-category and date-range filters. New transactions include a creation timestamp. Legacy transactions without a recorded timestamp remain included in unfiltered exports but are excluded when a date range is selected. The English/Indonesian language preference is stored in the browser.
 
 Existing client-side demo accounts are intentionally not migrated as identities. Provision the first Admin with the bootstrap command, then have an Admin recreate employee accounts with new initial passwords.
 

@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import type { AuthUser, Theme } from "../types"
+import { useLanguage } from "../i18n"
 
 interface AccountSettingsProps {
   user: AuthUser
@@ -20,25 +21,28 @@ const Section = ({
 }: {
   title: string
   children: React.ReactNode
-}) => (
-  <div
-    className="rounded-2xl overflow-hidden"
-    style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-  >
+}) => {
+  const { t } = useLanguage()
+  return (
     <div
-      className="px-6 py-4"
-      style={{ borderBottom: "1px solid var(--border)" }}
+      className="rounded-2xl overflow-hidden"
+      style={{ background: "var(--card)", border: "1px solid var(--border)" }}
     >
-      <h2
-        className="font-display font-semibold text-sm tracking-wide"
-        style={{ color: "var(--muted-foreground)" }}
+      <div
+        className="px-6 py-4"
+        style={{ borderBottom: "1px solid var(--border)" }}
       >
-        {title}
-      </h2>
+        <h2
+          className="font-display font-semibold text-sm tracking-wide"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          {t(title)}
+        </h2>
+      </div>
+      <div className="px-6 py-4 flex flex-col gap-4">{children}</div>
     </div>
-    <div className="px-6 py-4 flex flex-col gap-4">{children}</div>
-  </div>
-)
+  )
+}
 
 const Toggle = ({
   label,
@@ -49,6 +53,7 @@ const Toggle = ({
   sub?: string
   defaultOn?: boolean
 }) => {
+  const { t } = useLanguage()
   const [on, setOn] = useState(defaultOn)
 
   return (
@@ -58,14 +63,14 @@ const Toggle = ({
           className="text-sm font-semibold font-body"
           style={{ color: "var(--foreground)" }}
         >
-          {label}
+          {t(label)}
         </div>
         {sub && (
           <div
             className="text-xs font-body"
             style={{ color: "var(--muted-foreground)" }}
           >
-            {sub}
+            {t(sub)}
           </div>
         )}
       </div>
@@ -89,6 +94,7 @@ export default function AccountSettings({
   onThemeChange,
   onUpdate,
 }: AccountSettingsProps) {
+  const { t } = useLanguage()
   const [profile, setProfile] = useState({
     name: user.name,
     email: user.email,
@@ -125,7 +131,7 @@ export default function AccountSettings({
       console.error("Account profile update failed:", error)
 
       setProfileError(
-        error instanceof Error ? error.message : "Profil gagal disimpan.",
+        error instanceof Error ? error.message : t("Profil gagal disimpan."),
       )
     } finally {
       setSavingProfile(false)
@@ -172,7 +178,7 @@ export default function AccountSettings({
                 className="block text-xs font-semibold mb-1.5 font-body"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                {f.label}
+                {t(f.label)}
               </label>
               <input
                 value={profile[f.key]}
@@ -198,7 +204,7 @@ export default function AccountSettings({
             className="text-xs"
             style={{ color: "var(--success)" }}
           >
-            Profile saved.
+            {t("Profile saved.")}
           </p>
         )}
         {profileError && (
@@ -207,7 +213,7 @@ export default function AccountSettings({
             className="text-xs"
             style={{ color: "var(--danger)" }}
           >
-            {profileError}
+            {t(profileError)}
           </p>
         )}
         <div className="flex justify-end">
@@ -220,7 +226,7 @@ export default function AccountSettings({
               color: "var(--primary-foreground)",
             }}
           >
-            {savingProfile ? "Saving..." : "Save Profile"}
+            {savingProfile ? t("Saving...") : t("Save Profile")}
           </button>
         </div>
       </Section>
@@ -230,14 +236,13 @@ export default function AccountSettings({
           className="font-semibold text-sm font-body -mb-2"
           style={{ color: "var(--foreground)" }}
         >
-          Change Password
+          {t("Change Password")}
         </h3>
         <p
           className="text-xs font-body"
           style={{ color: "var(--muted-foreground)" }}
         >
-          Hubungi Administrator untuk mengatur ulang kata sandi melalui
-          manajemen akun.
+          {t("Hubungi Administrator untuk mengatur ulang kata sandi melalui manajemen akun.")}
         </p>
         <div className="h-px" style={{ background: "var(--border)" }} />
         <Toggle
@@ -249,7 +254,7 @@ export default function AccountSettings({
             className="text-sm font-semibold font-body mb-2"
             style={{ color: "var(--foreground)" }}
           >
-            Active Sessions
+            {t("Active Sessions")}
           </div>
           <div
             className="rounded-xl p-3 flex items-center justify-between"
@@ -266,7 +271,7 @@ export default function AccountSettings({
                 className="text-xs"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                Current session · Jakarta, ID
+                {t("Current session · Jakarta, ID")}
               </div>
             </div>
             <span
@@ -276,7 +281,7 @@ export default function AccountSettings({
                 color: "var(--success)",
               }}
             >
-              Active
+              {t("Active")}
             </span>
           </div>
         </div>
@@ -310,25 +315,25 @@ export default function AccountSettings({
             className="text-xs font-semibold mb-2 font-body"
             style={{ color: "var(--muted-foreground)" }}
           >
-            Theme
+            {t("Theme")}
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {(["light", "dark"] as const).map((t) => (
+            {(["light", "dark"] as const).map((themeOption) => (
               <button
-                key={t}
-                onClick={() => onThemeChange(t)}
+                key={themeOption}
+                onClick={() => onThemeChange(themeOption)}
                 className="py-3 rounded-xl flex flex-col items-center gap-1 text-xs font-semibold font-body transition-all"
                 style={
-                  theme === t
+                  theme === themeOption
                     ? {
                         background:
-                          t === theme ? "var(--primary)" : "var(--muted)",
+                          themeOption === theme ? "var(--primary)" : "var(--muted)",
                         color:
-                          t === theme
+                          themeOption === theme
                             ? "var(--primary-foreground)"
                             : "var(--foreground)",
                         border: `2px solid ${
-                          t === theme ? "var(--primary)" : "var(--border)"
+                          themeOption === theme ? "var(--primary)" : "var(--border)"
                         }`,
                       }
                     : {
@@ -339,9 +344,9 @@ export default function AccountSettings({
                 }
               >
                 <span className="text-lg">
-                  {t === "light" ? "☀" : t === "dark" ? "🌙" : "◐"}
+                  {themeOption === "light" ? "☀" : "🌙"}
                 </span>
-                <span className="capitalize">{t}</span>
+                <span className="capitalize">{t(themeOption === "light" ? "Light" : "Dark")}</span>
               </button>
             ))}
           </div>
@@ -364,7 +369,7 @@ export default function AccountSettings({
             className="font-display font-semibold text-sm"
             style={{ color: "var(--danger)" }}
           >
-            DANGER ZONE
+            {t("DANGER ZONE")}
           </h2>
         </div>
         <div
@@ -376,14 +381,13 @@ export default function AccountSettings({
               className="font-semibold text-sm font-body"
               style={{ color: "var(--foreground)" }}
             >
-              Delete Account
+              {t("Delete Account")}
             </div>
             <div
               className="text-xs font-body"
               style={{ color: "var(--muted-foreground)" }}
             >
-              Account deletion requires a configured identity service and is
-              unavailable in this local demo.
+              {t("Account deletion requires a configured identity service and is unavailable in this local demo.")}
             </div>
           </div>
         </div>

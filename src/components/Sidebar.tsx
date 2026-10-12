@@ -1,4 +1,5 @@
 import type { Page, UserRole } from '../types';
+import { useLanguage } from '../i18n';
 
 interface NavItem { id: Page; label: string; icon: string; roles?: UserRole[] }
 interface NavSection { section: string; items: NavItem[] }
@@ -38,6 +39,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentPage, onNavigate, isOpen, onClose, role }: SidebarProps) {
+  const { t } = useLanguage();
   const visible = (item: NavItem) => !item.roles || item.roles.includes(role);
 
   return (
@@ -58,7 +60,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onClose, role
             <div className="font-display font-semibold text-sm leading-tight" style={{ color: 'var(--foreground)' }}>
               KAMI Inventory
             </div>
-            <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Inventory Management</div>
+            <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{t('Inventory Management')}</div>
           </div>
         </div>
 
@@ -68,7 +70,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onClose, role
             style={{ background: 'var(--muted)' }}>
             <span className="text-xs">{role === 'admin' ? '⚡' : '👤'}</span>
             <span className="text-xs font-semibold font-body capitalize" style={{ color: 'var(--muted-foreground)' }}>
-              {role === 'admin' ? 'Administrator' : 'Operator'}
+              {t(role === 'admin' ? 'Administrator' : 'Operator')}
             </span>
           </div>
         </div>
@@ -82,7 +84,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onClose, role
               <div key={section.section} className="mb-5">
                 <div className="px-3 mb-2 text-xs font-semibold tracking-widest font-body"
                   style={{ color: 'var(--muted-foreground)' }}>
-                  {section.section}
+                  {t(section.section)}
                 </div>
                 <div className="flex flex-col gap-0.5">
                   {visibleItems.map((item) => {
@@ -99,7 +101,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onClose, role
                         onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                       >
                         <span className="text-base w-5 text-center">{item.icon}</span>
-                        <span className="font-body">{item.label}</span>
+                        <span className="font-body">{t(item.label)}</span>
                       </button>
                     );
                   })}
@@ -121,7 +123,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onClose, role
               <div className="text-xs" style={{ color: 'var(--success)' }}>Online</div>
             </div>
             <button onClick={() => onNavigate('iot-scanner')} className="ml-auto text-xs px-2 py-1 rounded-md" style={{ color: 'var(--primary)' }}>
-              View
+              {t('View')}
             </button>
           </div>
         </div>

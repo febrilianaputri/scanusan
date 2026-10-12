@@ -1,4 +1,5 @@
 import type { AuthPage, Theme } from "../../types"
+import { useLanguage } from "../../i18n"
 
 interface ForgotPasswordProps {
   theme: Theme
@@ -13,6 +14,7 @@ export default function ForgotPassword({
   onThemeToggle,
   onNavigate,
 }: ForgotPasswordProps) {
+  const { language, setLanguage, t } = useLanguage()
   return (
     <div
       className="min-h-screen flex items-center justify-center p-6"
@@ -43,7 +45,15 @@ export default function ForgotPassword({
               color: "var(--foreground)",
             }}
           >
-            {theme === "light" ? "🌙 Dark" : "☀ Light"}
+            {theme === "light" ? `🌙 ${t("Dark")}` : `☀ ${t("Light")}`}
+          </button>
+          <button
+            onClick={() => setLanguage(language === "en" ? "id" : "en")}
+            className="px-3 py-2 rounded-lg text-xs font-semibold font-body"
+            style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+            aria-label={language === "en" ? "Switch language to Indonesian" : "Ganti bahasa ke English"}
+          >
+            {language === "en" ? "EN" : "ID"}
           </button>
         </div>
 
@@ -66,14 +76,15 @@ export default function ForgotPassword({
             className="font-display font-bold text-2xl mb-2"
             style={{ color: "var(--foreground)" }}
           >
-            Reset kata sandi
+            {t("Reset Password")}
           </h1>
           <p
             className="text-sm font-body"
             style={{ color: "var(--muted-foreground)" }}
           >
-            Untuk menjaga akun pegawai tetap terpusat, hubungi Administrator
-            untuk mengatur ulang kata sandi.
+            {language === "id"
+              ? "Untuk menjaga akun pegawai tetap terpusat, hubungi Administrator untuk mengatur ulang kata sandi."
+              : "To keep employee accounts centrally managed, contact an Administrator to reset your password."}
           </p>
           <button
             onClick={() => onNavigate("login")}
@@ -83,7 +94,7 @@ export default function ForgotPassword({
               color: "var(--primary-foreground)",
             }}
           >
-            Kembali ke Login
+            {t("Back to Login")}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import type { AuthUser } from "../types"
+import { useLanguage } from "../i18n"
 
 interface ProfileProps {
   user: AuthUser
@@ -23,6 +24,7 @@ const activity = [
 ]
 
 export default function Profile({ user, onUpdate }: ProfileProps) {
+  const { t } = useLanguage()
   const [editing, setEditing] = useState(false)
 
   const [form, setForm] = useState({ ...user })
@@ -83,7 +85,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
         className="text-xs font-semibold font-body"
         style={{ color: "var(--muted-foreground)" }}
       >
-        {label}
+        {t(label)}
       </label>
       {editing && field !== "email" ? (
         <input
@@ -129,7 +131,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
           className="rounded-xl px-4 py-3 text-sm"
           style={{ color: "var(--danger)", background: "var(--card)" }}
         >
-          {error}
+          {t(error)}
         </p>
       )}
 
@@ -181,7 +183,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
                       }
                 }
               >
-                {user.role === "admin" ? "⚡ Administrator" : "👤 Operator"}
+                {user.role === "admin" ? `⚡ ${t("Administrator")}` : `👤 ${t("Operator")}`}
               </span>
             </div>
             <div className="flex justify-center">
@@ -192,7 +194,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
                   color: "var(--success)",
                 }}
               >
-                🟢 Active
+                🟢 {t("Active")}
               </span>
             </div>
           </div>
@@ -213,7 +215,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
                 className="font-display font-semibold text-base"
                 style={{ color: "var(--foreground)" }}
               >
-                Personal Information
+                {t("Personal Information")}
               </h2>
               {!editing ? (
                 <button
@@ -225,7 +227,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
                     color: "var(--primary)",
                   }}
                 >
-                  ✏ Edit Profile
+                  ✏ {t("Edit Profile")}
                 </button>
               ) : (
                 <div className="flex gap-2">
@@ -241,7 +243,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
                       color: "var(--foreground)",
                     }}
                   >
-                    Cancel
+                    {t("Cancel")}
                   </button>
                   <button
                     onClick={handleSave}
@@ -252,7 +254,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
                       color: "var(--primary-foreground)",
                     }}
                   >
-                    {saving ? "Saving..." : "Save"}
+                    {saving ? t("Saving...") : t("Save")}
                   </button>
                 </div>
               )}
@@ -286,7 +288,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
               className="font-display font-semibold text-base mb-4"
               style={{ color: "var(--foreground)" }}
             >
-              Recent Activity
+              {t("Recent Activity")}
             </h2>
             <div className="flex flex-col gap-2">
               {activity.map((a, i) => (
@@ -309,7 +311,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
                       className="text-sm font-body"
                       style={{ color: "var(--foreground)" }}
                     >
-                      {a.action}
+                      {t(a.action)}
                     </div>
                   </div>
                   <div

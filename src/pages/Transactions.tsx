@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAppData } from '../data/AppDataContext';
+import { useLanguage } from '../i18n';
 
 type Tab = 'all' | 'in' | 'out';
 
 export default function Transactions() {
+  const { t, language } = useLanguage();
   const { data } = useAppData();
   const [tab, setTab] = useState<Tab>('all');
   const [search, setSearch] = useState('');
@@ -22,16 +24,16 @@ export default function Transactions() {
     <div className="flex flex-col gap-4">
       {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--muted)' }}>
-        {(['all', 'in', 'out'] as Tab[]).map((t) => (
+        {(['all', 'in', 'out'] as Tab[]).map((direction) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={direction}
+            onClick={() => setTab(direction)}
             className="px-4 py-2 rounded-lg text-sm font-semibold font-body capitalize transition-all"
-            style={tab === t
+            style={tab === direction
               ? { background: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
               : { color: 'var(--muted-foreground)' }}
           >
-            {t === 'all' ? 'All' : `Stock ${t === 'in' ? 'In' : 'Out'}`}
+            {direction === 'all' ? t('All') : t(`Stock ${direction === 'in' ? 'In' : 'Out'}`)}
           </button>
         ))}
       </div>
@@ -44,7 +46,7 @@ export default function Transactions() {
         >
           <span style={{ color: 'var(--muted-foreground)' }}>🔍</span>
           <input
-            placeholder="Search product or barcode..."
+            placeholder={t('Search product or barcode...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent outline-none text-sm font-body w-44"
@@ -53,12 +55,12 @@ export default function Transactions() {
         </div>
         <select value={scanner} onChange={(event) => setScanner(event.target.value)} className="px-3 py-2 rounded-xl text-sm font-body outline-none"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
-          <option>All Scanners</option>
+          <option value="All Scanners">{t('All Scanners')}</option>
           {scanners.map((value) => <option key={value}>{value}</option>)}
         </select>
         <select value={user} onChange={(event) => setUser(event.target.value)} className="px-3 py-2 rounded-xl text-sm font-body outline-none"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
-          <option>All Users</option>
+          <option value="All Users">{t('All Users')}</option>
           {users.map((value) => <option key={value}>{value}</option>)}
         </select>
       </div>
@@ -71,7 +73,7 @@ export default function Transactions() {
               <tr style={{ background: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
                 {['Time', 'Barcode', 'Product', 'Type', 'Qty', 'Prev Stock', 'Current Stock', 'Scanner', 'User'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
@@ -97,7 +99,7 @@ export default function Transactions() {
                         ? { background: 'rgba(106,168,79,0.12)', color: 'var(--success)' }
                         : { background: 'rgba(217,83,79,0.12)', color: 'var(--danger)' }}
                     >
-                      Stock {tx.type.toUpperCase()}
+                      {t(`Stock ${tx.type === 'in' ? 'In' : 'Out'}`)}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-semibold text-sm"
@@ -115,10 +117,11 @@ export default function Transactions() {
         </div>
         <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
           <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-            {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
+            {filtered.length} {language === 'id' ? 'transaksi' : `transaction${filtered.length !== 1 ? 's' : ''}`}
           </span>
         </div>
       </div>
     </div>
   );
+
 }

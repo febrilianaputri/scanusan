@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAppData } from '../data/AppDataContext';
 import type { Product } from '../types';
+import { useLanguage } from '../i18n';
 
 type ScanState = 'waiting' | 'scanning' | 'success' | 'error';
 
 export default function LiveScanCenter() {
+  const { t } = useLanguage();
   const { data, setData } = useAppData();
   const [state, setState] = useState<ScanState>('waiting');
   const [simulating, setSimulating] = useState(false);
@@ -33,6 +35,7 @@ export default function LiveScanCenter() {
         transactions: [{
           id: `tx-${now.getTime()}`,
           time: now.toLocaleTimeString('en-GB'),
+          createdAt: now.toISOString(),
           barcode: product.barcode,
           product: product.name,
           type: 'out',
@@ -72,11 +75,11 @@ export default function LiveScanCenter() {
             )}
           </div>
           <span className="font-display font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
-            LIVE SCAN
+            {t('LIVE SCAN')}
           </span>
         </div>
         <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ background: 'rgba(106,168,79,0.12)', color: 'var(--success)' }}>
-          Demo Scanner
+          {t('Demo Scanner')}
         </span>
       </div>
 
@@ -89,7 +92,7 @@ export default function LiveScanCenter() {
           <>
             <div className="text-4xl animate-pulse">📡</div>
             <p className="text-sm text-center font-body" style={{ color: 'var(--muted-foreground)' }}>
-              Waiting for barcode scan...
+              {t('Waiting for barcode scan...')}
             </p>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Scanner-01</p>
           </>
@@ -108,7 +111,7 @@ export default function LiveScanCenter() {
               ))}
             </div>
             <p className="text-sm font-semibold font-display" style={{ color: 'var(--primary)' }}>
-              SCANNING...
+              {t('SCANNING...')}
             </p>
           </>
         )}
@@ -118,7 +121,7 @@ export default function LiveScanCenter() {
             <div className="flex items-center gap-2">
               <span className="text-lg" style={{ color: 'var(--success)' }}>✓</span>
               <span className="text-sm font-semibold font-display" style={{ color: 'var(--success)' }}>
-                Barcode Detected
+                {t('Barcode Detected')}
               </span>
             </div>
             <div className="text-xs font-mono py-1.5 px-2 rounded-lg" style={{ background: 'var(--secondary)', color: 'var(--foreground)' }}>
@@ -130,7 +133,7 @@ export default function LiveScanCenter() {
             <div className="flex items-center justify-between">
               <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
                 style={{ background: 'rgba(217,83,79,0.12)', color: 'var(--danger)' }}>
-                STOCK OUT
+                {t('STOCK OUT')}
               </span>
               <span className="font-bold text-sm" style={{ color: 'var(--danger)' }}>
                 -1 {scannedProduct?.unit}
@@ -146,9 +149,9 @@ export default function LiveScanCenter() {
           <>
             <div className="text-3xl">⚠</div>
             <p className="text-sm font-semibold font-display" style={{ color: 'var(--warning)' }}>
-              No Scannable Stock
+              {t('No Scannable Stock')}
             </p>
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Add an in-stock product before simulating a scan.</p>
+            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{t('Add an in-stock product before simulating a scan.')}</p>
           </>
         )}
       </div>
@@ -163,7 +166,7 @@ export default function LiveScanCenter() {
           cursor: simulating ? 'not-allowed' : 'pointer',
         }}
       >
-        {state === 'waiting' ? '▶ Simulate Scan' : state === 'scanning' ? 'Scanning...' : '↩ Reset'}
+        {state === 'waiting' ? `▶ ${t('Simulate Scan')}` : state === 'scanning' ? t('Scanning...') : `↩ ${t('Reset')}`}
       </button>
     </div>
   );

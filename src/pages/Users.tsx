@@ -5,8 +5,10 @@ import { useAppData } from "../data/AppDataContext"
 import type { User, UserRole } from "../types"
 
 import { apiRequest } from "../lib/api"
+import { useLanguage } from "../i18n"
 
 export default function Users({ role }: { role: UserRole }) {
+  const { t } = useLanguage()
   const { data, refreshUsers, replaceUsers } = useAppData()
 
   const [showAddForm, setShowAddForm] = useState(false)
@@ -20,7 +22,7 @@ export default function Users({ role }: { role: UserRole }) {
         className="rounded-xl p-4 text-sm"
         style={{ background: "var(--card)", color: "var(--danger)" }}
       >
-        403 — Anda tidak memiliki izin untuk mengelola pengguna.
+        {t("403 — You do not have permission to manage users.")}
       </div>
     )
   }
@@ -162,7 +164,7 @@ export default function Users({ role }: { role: UserRole }) {
             color: "var(--primary-foreground)",
           }}
         >
-          {showAddForm ? "Cancel" : "+ Add User"}
+          {showAddForm ? t("Cancel") : `+ ${t("Add User")}`}
         </button>
       </div>
 
@@ -179,7 +181,7 @@ export default function Users({ role }: { role: UserRole }) {
             className="flex flex-col gap-1.5 text-xs font-semibold"
             style={{ color: "var(--muted-foreground)" }}
           >
-            Nama pegawai
+            {t("Employee name")}
             <input
               name="name"
               required
@@ -196,7 +198,7 @@ export default function Users({ role }: { role: UserRole }) {
             className="flex flex-col gap-1.5 text-xs font-semibold"
             style={{ color: "var(--muted-foreground)" }}
           >
-            Email
+            {t("Email")}
             <input
               name="email"
               type="email"
@@ -214,7 +216,7 @@ export default function Users({ role }: { role: UserRole }) {
             className="flex flex-col gap-1.5 text-xs font-semibold"
             style={{ color: "var(--muted-foreground)" }}
           >
-            Kata sandi awal (12-72 byte UTF-8)
+            {t("Initial password (12-72 UTF-8 bytes)")}
             <input
               name="password"
               type="password"
@@ -234,7 +236,7 @@ export default function Users({ role }: { role: UserRole }) {
             className="flex flex-col gap-1.5 text-xs font-semibold"
             style={{ color: "var(--muted-foreground)" }}
           >
-            Role
+            {t("Role")}
             <select
               name="role"
               defaultValue="operator"
@@ -245,8 +247,8 @@ export default function Users({ role }: { role: UserRole }) {
                 border: "1px solid var(--border)",
               }}
             >
-              <option value="operator">Operator</option>
-              <option value="admin">Admin</option>
+              <option value="operator">{t("Operator")}</option>
+              <option value="admin">{t("Admin")}</option>
             </select>
           </label>
           <div className="md:col-span-2 flex items-center justify-between gap-3">
@@ -256,7 +258,7 @@ export default function Users({ role }: { role: UserRole }) {
                 className="text-xs"
                 style={{ color: "var(--danger)" }}
               >
-                {error}
+                {t(error)}
               </p>
             )}
             <button
@@ -267,7 +269,7 @@ export default function Users({ role }: { role: UserRole }) {
                 color: "var(--primary-foreground)",
               }}
             >
-              Buat akun pegawai
+              {t("Create employee account")}
             </button>
           </div>
         </form>
@@ -278,7 +280,7 @@ export default function Users({ role }: { role: UserRole }) {
           className="rounded-xl p-3 text-sm"
           style={{ color: "var(--danger)", background: "var(--card)" }}
         >
-          {error}
+          {t(error)}
         </p>
       )}
 
@@ -308,7 +310,7 @@ export default function Users({ role }: { role: UserRole }) {
                     className="text-left px-4 py-3 text-xs font-semibold"
                     style={{ color: "var(--muted-foreground)" }}
                   >
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
@@ -364,7 +366,7 @@ export default function Users({ role }: { role: UserRole }) {
                             }
                       }
                     >
-                      {u.role === "admin" ? "⚡ Admin" : "👤 Operator"}
+                      {u.role === "admin" ? `⚡ ${t("Admin")}` : `👤 ${t("Operator")}`}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -382,7 +384,7 @@ export default function Users({ role }: { role: UserRole }) {
                             }
                       }
                     >
-                      {u.status === "active" ? "Active" : "Inactive"}
+                      {t(u.status === "active" ? "Active" : "Inactive")}
                     </span>
                   </td>
                   <td
@@ -401,7 +403,7 @@ export default function Users({ role }: { role: UserRole }) {
                           color: "var(--primary)",
                         }}
                       >
-                        Edit
+                        {t("Edit")}
                       </button>
                       <button
                         onClick={() => resetUserPassword(u)}
@@ -411,13 +413,13 @@ export default function Users({ role }: { role: UserRole }) {
                           color: "var(--primary)",
                         }}
                       >
-                        Reset Password
+                        {t("Reset Password")}
                       </button>
                       <button
                         onClick={async () => {
                           if (
                             u.status === "inactive" ||
-                            !window.confirm(`Deactivate ${u.name}?`)
+                            !window.confirm(t("Deactivate user?").replace("{name}", u.name))
                           )
                             return
 
@@ -452,7 +454,7 @@ export default function Users({ role }: { role: UserRole }) {
                           color: "var(--danger)",
                         }}
                       >
-                        Disable
+                        {t("Disable")}
                       </button>
                     </div>
                   </td>

@@ -39,6 +39,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword"
 import { AppDataProvider, useAppData } from "./data/AppDataContext"
 
 import { clearLegacyBrowserData } from "./lib/legacy-inventory"
+import { LanguageProvider, useLanguage } from "./i18n"
 
 const adminPages: Page[] = ["reports", "suppliers", "users", "settings"]
 
@@ -63,13 +64,15 @@ export default function App() {
     setTheme((current) => (current === "light" ? "dark" : "light"))
 
   return (
-    <AuthProvider>
-      <Application
-        theme={theme}
-        setTheme={setTheme}
-        toggleTheme={toggleTheme}
-      />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Application
+          theme={theme}
+          setTheme={setTheme}
+          toggleTheme={toggleTheme}
+        />
+      </AuthProvider>
+    </LanguageProvider>
   )
 }
 
@@ -86,6 +89,7 @@ function Application({
 
   toggleTheme: () => void
 }) {
+  const { t } = useLanguage()
   const {
     user,
     checkingSession,
@@ -108,7 +112,7 @@ function Application({
           color: "var(--muted-foreground)",
         }}
       >
-        Memeriksa sesi aman...
+        {t("Memeriksa sesi aman...")}
       </div>
     )
   }
@@ -149,7 +153,7 @@ function Application({
       console.error("Logout failed:", error)
 
       setAuthError(
-        "Logout gagal. Koneksi ke server diperlukan untuk mengakhiri sesi.",
+        "Sign out failed. A server connection is required to end the session.",
       )
     }
   }
@@ -200,6 +204,7 @@ function AuthenticatedApplication({
 
   authError: string
 }) {
+  const { t } = useLanguage()
   const { error: dataError, loading: dataLoading } = useAppData()
 
   const [page, setPage] = useState<Page>("dashboard")
@@ -214,7 +219,7 @@ function AuthenticatedApplication({
 
   const navigate = (nextPage: Page) => {
     if (adminPages.includes(nextPage) && user.role !== "admin") {
-      setNotice("403 — Anda tidak memiliki izin untuk membuka halaman ini.")
+      setNotice("403 — You do not have permission to open this page.")
 
       setPage("dashboard")
 
@@ -314,7 +319,7 @@ function AuthenticatedApplication({
                   color: "var(--danger)",
                 }}
               >
-                {dataError || notice || authError}
+                {t(dataError || notice || authError)}
               </div>
             )}
             {dataLoading ? (
@@ -322,7 +327,7 @@ function AuthenticatedApplication({
                 className="text-sm"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                Memuat data dari server...
+                {t("Memuat data dari server...")}
               </p>
             ) : (
               renderPage()
@@ -341,7 +346,7 @@ function AuthenticatedApplication({
           }}
         >
           <span className="text-lg">📡</span>
-          Stock Transaction
+          {t("Stock Transaction")}
         </button>
       )}
     </div>

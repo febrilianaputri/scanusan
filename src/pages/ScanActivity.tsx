@@ -1,6 +1,8 @@
 import { useAppData } from '../data/AppDataContext';
+import { useLanguage } from '../i18n';
 
 export default function ScanActivity() {
+  const { t } = useLanguage();
   const { data } = useAppData();
   const activeScanners = new Set(data.transactions.map((transaction) => transaction.scanner)).size;
   return (
@@ -15,7 +17,7 @@ export default function ScanActivity() {
         ].map((s) => (
           <div key={s.label} className="rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <div className="font-display font-bold text-2xl" style={{ color: s.color }}>{s.value}</div>
-            <div className="text-xs font-body mt-1" style={{ color: 'var(--muted-foreground)' }}>{s.label}</div>
+            <div className="text-xs font-body mt-1" style={{ color: 'var(--muted-foreground)' }}>{t(s.label)}</div>
           </div>
         ))}
       </div>
@@ -27,7 +29,7 @@ export default function ScanActivity() {
             <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
             <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-400 animate-ping opacity-75"></div>
           </div>
-          <h2 className="font-display font-semibold" style={{ color: 'var(--foreground)' }}>Real-Time Feed</h2>
+          <h2 className="font-display font-semibold" style={{ color: 'var(--foreground)' }}>{t('Real-Time Feed')}</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm font-body">
@@ -35,7 +37,7 @@ export default function ScanActivity() {
               <tr style={{ background: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
                 {['#', 'Time', 'Scanner', 'Barcode', 'Product', 'Action', 'Qty', 'Result'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>

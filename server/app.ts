@@ -20,6 +20,11 @@ import { requireAdmin, requireSession } from "./auth-middleware.js"
 
 import type { Employee } from "./types.js"
 
+import {
+  createReportWorkbook,
+  filterReportTransactions,
+} from "./report-export.js"
+
 const SESSION_COOKIE = "kami_session"
 
 const SESSION_DURATION_MS = 5 * 24 * 60 * 60 * 1000
@@ -725,6 +730,8 @@ const appDataSchema = z
 
           time: z.string(),
 
+          createdAt: z.string().datetime({ offset: true }).optional(),
+
           barcode: z.string(),
 
           product: z.string(),
@@ -1066,11 +1073,64 @@ app.post(
 )
 
 app.get(
-  "/api/reports/export.csv",
+  "/api/reports/categories",
   requireSession,
   requireAdmin,
   async (_request, response, next) => {
     try {
+      const [rows] = await pool.execute<RowDataPacket[]>(
+        "SELECT payload FROM inventory_state WHERE id = 1",
+      )
+      const payload = appDataSchema.parse(
+        rows[0]?.payload ?? {
+          products: [],
+          transactions: [],
+          suppliers: [],
+        },
+      )
+
+      response.setHeader("Cache-Control", "no-store")
+      response.json({
+        categories: [...new Set(payload.products.map((product) => product.category))]
+          .filter(Boolean)
+          .sort((left, right) => left.localeCompare(right)),
+      })
+    } catch (error) {
+      next(error)
+    }
+  },
+)
+
+app.get(
+  "/api/reports/export.xlsx",
+  requireSession,
+  requireAdmin,
+  async (request, response, next) => {
+    try {
+      const category = request.query.category
+      const from = request.query.from
+      const to = request.query.to
+
+      const isDate = (value: unknown): value is string =>
+        typeof value === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+        Number.isFinite(new Date(`${value}T00:00:00.000Z`).getTime()) &&
+        new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value
+
+      if (
+        (category !== undefined &&
+          (typeof category !== "string" || category.trim() === "")) ||
+        (from !== undefined && !isDate(from)) ||
+        (to !== undefined && !isDate(to)) ||
+        ((from === undefined) !== (to === undefined)) ||
+        (typeof from === "string" &&
+          typeof to === "string" &&
+          from > to)
+      ) {
+        response.status(400).json({ error: "Invalid export filters" })
+        return
+      }
+
       const [rows] = await pool.execute<RowDataPacket[]>(
         "SELECT payload FROM inventory_state WHERE id = 1",
       )
@@ -1083,56 +1143,36 @@ app.get(
         },
       )
 
-      const transactions =
-        payload.transactions as Array<Record<string, unknown>>
-
-      const csvCell = (value: unknown) => {
-        const text = String(value ?? "")
-
-        const safeText = /^[\s]*[=+\-@]/.test(text) ? `'${text}` : text
-
-        return `"${safeText.replace(/"/g, '""')}"`
+      const categoryByBarcode = new Map(
+        payload.products.map((product) => [product.barcode, product.category]),
+      )
+      const filters = {
+        ...(typeof category === "string" ? { category } : {}),
+        ...(typeof from === "string" && typeof to === "string"
+          ? { from, to }
+          : {}),
       }
-
-      const lines = [
-        [
-          "Time",
-          "Barcode",
-          "Product",
-          "Type",
-          "Quantity",
-          "Previous Stock",
-          "Current Stock",
-          "Scanner",
-          "User",
-        ],
-
-        ...transactions.map((row) => [
-          row.time,
-          row.barcode,
-          row.product,
-          row.type,
-          row.quantity,
-
-          row.prevStock,
-          row.currentStock,
-          row.scanner,
-          row.user,
-        ]),
-      ]
-
-      response.setHeader("Content-Type", "text/csv; charset=utf-8")
-
-      response.setHeader(
-        "Content-Disposition",
-        'attachment; filename="kami-inventory-report.csv"',
+      const transactions = filterReportTransactions(
+        payload.transactions,
+        categoryByBarcode,
+        filters,
+      )
+      const workbook = await createReportWorkbook(
+        transactions,
+        categoryByBarcode,
       )
 
       response.setHeader("Cache-Control", "no-store")
 
-      response.send(
-        lines.map((line) => line.map(csvCell).join(",")).join("\r\n"),
+      response.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       )
+      response.setHeader(
+        "Content-Disposition",
+        'attachment; filename="kami-inventory-report.xlsx"',
+      )
+      response.send(workbook)
     } catch (error) {
       next(error)
     }
@@ -1201,6 +1241,7 @@ function sameTransaction(
   return (
     left.id === right.id &&
     left.time === right.time &&
+    left.createdAt === right.createdAt &&
     left.barcode === right.barcode &&
     left.product === right.product &&
     left.type === right.type &&

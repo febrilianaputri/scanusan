@@ -9,16 +9,26 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { useAppData } from "../data/AppDataContext"
+import { useLanguage } from "../i18n"
+
+const ALL_CATEGORIES = "__all_categories__"
 
 export default function Reports() {
   const { data } = useAppData()
+  const { language, t } = useLanguage()
 
   const [exportError, setExportError] = useState("")
 
   const [exporting, setExporting] = useState(false)
+  const [category, setCategory] = useState(ALL_CATEGORIES)
+  const [dateRange, setDateRange] = useState("all")
+  const [customFrom, setCustomFrom] = useState("")
+  const [customTo, setCustomTo] = useState("")
+  const [categories, setCategories] = useState<string[]>([])
+  const [categoryError, setCategoryError] = useState("")
 
   const chartData = data.transactions
     .slice(0, 7)
@@ -52,13 +62,82 @@ export default function Reports() {
 
   const maxMovement = Math.max(1, ...movements.map((item) => item.quantity))
 
+  useEffect(() => {
+    let active = true
+    const loadCategories = async () => {
+      try {
+        const response = await fetch("/api/reports/categories", {
+          credentials: "same-origin",
+          cache: "no-store",
+        })
+        if (response.status === 401)
+          window.dispatchEvent(new Event("kami:unauthorized"))
+        if (!response.ok)
+          throw new Error(`Export categories failed to load (${response.status})`)
+        const result: unknown = await response.json()
+        if (
+          typeof result !== "object" ||
+          result === null ||
+          !("categories" in result) ||
+          !Array.isArray(result.categories) ||
+          !result.categories.every((item) => typeof item === "string")
+        ) {
+          throw new Error("Invalid export category response.")
+        }
+        if (active) {
+          setCategories(result.categories)
+          setCategoryError("")
+        }
+      } catch (error) {
+        console.error("Export categories could not be loaded:", error)
+        if (active) setCategoryError("Unable to load export categories.")
+      }
+    }
+    void loadCategories()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
   const exportReport = async () => {
     setExporting(true)
 
     setExportError("")
 
     try {
-      const response = await fetch("/api/reports/export.csv", {
+      let from: string | undefined
+      let to: string | undefined
+      if (dateRange === "custom") {
+        if (!customFrom || !customTo || customFrom > customTo) {
+          throw new Error("Please select a valid date range.")
+        }
+        from = customFrom
+        to = customTo
+      } else if (dateRange !== "all") {
+        const days = Number(dateRange)
+        const today = new Date()
+        const start = new Date(today)
+        start.setDate(today.getDate() - days + 1)
+        from = formatLocalDate(start)
+        to = formatLocalDate(today)
+      }
+
+      const params = new URLSearchParams()
+      if (category !== ALL_CATEGORIES) params.set("category", category)
+      if (from && to) {
+        params.set("from", from)
+        params.set("to", to)
+      }
+      const query = params.size ? `?${params.toString()}` : ""
+
+      const response = await fetch(`/api/reports/export.xlsx${query}`, {
         credentials: "same-origin",
 
         cache: "no-store",
@@ -68,7 +147,9 @@ export default function Reports() {
         window.dispatchEvent(new Event("kami:unauthorized"))
 
       if (!response.ok) {
-        let message = `Export gagal (${response.status})`
+        let message = language === "id"
+          ? `Ekspor gagal (${response.status})`
+          : `Export failed (${response.status})`
 
         try {
           const body: unknown = await response.json()
@@ -94,7 +175,7 @@ export default function Reports() {
 
       link.href = url
 
-      link.download = "kami-inventory-report.csv"
+      link.download = "kami-inventory-report.xlsx"
 
       link.click()
 
@@ -103,7 +184,7 @@ export default function Reports() {
       console.error("Report export failed:", error)
 
       setExportError(
-        error instanceof Error ? error.message : "Laporan gagal diekspor.",
+        error instanceof Error ? error.message : "Report export failed.",
       )
     } finally {
       setExporting(false)
@@ -112,26 +193,76 @@ export default function Reports() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Date filters */}
-      <div className="flex flex-wrap gap-2 items-center justify-between">
+      <div
+        className="rounded-2xl p-4 flex flex-col gap-4"
+        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+      >
+        <div className="flex flex-wrap gap-3 items-end">
+          <label className="flex flex-col gap-1 text-xs font-semibold" style={{ color: "var(--muted-foreground)" }}>
+            {t("Category")}
+            <select
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              className="min-w-44 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
+              style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+            >
+              <option value={ALL_CATEGORIES}>{t("All Categories")}</option>
+              {categories.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold" style={{ color: "var(--muted-foreground)" }}>
+            {t("Date range")}
+            <select
+              value={dateRange}
+              onChange={(event) => setDateRange(event.target.value)}
+              className="min-w-44 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
+              style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+            >
+              <option value="all">{t("All dates")}</option>
+              <option value="7">{t("Last 7 days")}</option>
+              <option value="30">{t("Last 30 days")}</option>
+              <option value="custom">{t("Custom")}</option>
+            </select>
+          </label>
+          {dateRange === "custom" && (
+            <>
+              <label className="flex flex-col gap-1 text-xs font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                {t("From")}
+                <input type="date" value={customFrom} max={customTo || undefined} onChange={(event) => setCustomFrom(event.target.value)}
+                  className="px-3 py-2 rounded-xl text-sm font-body" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }} />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                {t("To")}
+                <input type="date" value={customTo} min={customFrom || undefined} onChange={(event) => setCustomTo(event.target.value)}
+                  className="px-3 py-2 rounded-xl text-sm font-body" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }} />
+              </label>
+            </>
+          )}
+          <button
+            onClick={exportReport}
+            disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body disabled:opacity-60"
+            style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
+          >
+            {exporting ? t("Exporting...") : `↓ ${t("Export Report")}`}
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+          {t("Filter category and date range before exporting.")}
+          {dateRange !== "all" && ` ${t("Transactions without a recorded date are excluded when a date filter is selected.")}`}
+        </p>
+        {categoryError && (
+          <p role="alert" className="text-xs" style={{ color: "var(--danger)" }}>
+            {t(categoryError)}
+          </p>
+        )}
         <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-          All recorded activity · {data.transactions.length} transactions
+          {t("All recorded activity")} · {data.transactions.length} {language === "id" ? "transaksi" : "transactions"}
         </span>
-        <button
-          onClick={exportReport}
-          disabled={exporting}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body disabled:opacity-60"
-          style={{
-            background: "var(--primary)",
-            color: "var(--primary-foreground)",
-          }}
-        >
-          {exporting ? "Mengekspor..." : "↓ Export Report"}
-        </button>
       </div>
       {exportError && (
         <p role="alert" className="text-sm" style={{ color: "var(--danger)" }}>
-          {exportError}
+          {t(exportError)}
         </p>
       )}
 
@@ -139,28 +270,28 @@ export default function Reports() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            label: "Total Stock In",
+            label: t("Total Stock In"),
             value: String(totalIn),
             icon: "↑",
             color: "var(--success)",
           },
 
           {
-            label: "Total Stock Out",
+            label: t("Total Stock Out"),
             value: String(totalOut),
             icon: "↓",
             color: "var(--danger)",
           },
 
           {
-            label: "Net Movement",
+            label: t("Net Movement"),
             value: `${totalIn - totalOut > 0 ? "+" : ""}${totalIn - totalOut}`,
             icon: "≡",
             color: "var(--info)",
           },
 
           {
-            label: "Total Transactions",
+            label: t("Total Transactions"),
             value: String(data.transactions.length),
             icon: "◎",
             color: "var(--primary)",
@@ -204,7 +335,7 @@ export default function Reports() {
           className="font-display font-semibold text-base mb-4"
           style={{ color: "var(--foreground)" }}
         >
-          Stock In vs Stock Out
+          {t("Stock In vs Stock Out")}
         </h2>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={chartData}>
@@ -235,13 +366,13 @@ export default function Reports() {
               dataKey="in"
               fill="var(--primary)"
               radius={[4, 4, 0, 0]}
-              name="Stock In"
+              name={t("Stock In")}
             />
             <Bar
               dataKey="out"
               fill="#D9534F"
               radius={[4, 4, 0, 0]}
-              name="Stock Out"
+              name={t("Stock Out")}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -256,7 +387,7 @@ export default function Reports() {
           className="font-display font-semibold text-base mb-4"
           style={{ color: "var(--foreground)" }}
         >
-          Top Moving Products
+          {t("Top Moving Products")}
         </h2>
         <div className="flex flex-col gap-3">
           {movements.map(({ product, quantity }, i) => {
@@ -280,7 +411,7 @@ export default function Reports() {
                       className="text-xs font-mono ml-2"
                       style={{ color: "var(--muted-foreground)" }}
                     >
-                      {quantity} moved
+                      {quantity} {t("moved")}
                     </span>
                   </div>
                   <div

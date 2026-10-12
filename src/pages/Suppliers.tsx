@@ -1,31 +1,33 @@
 import { useState } from 'react';
 import { useAppData } from '../data/AppDataContext';
 import type { Supplier } from '../types';
+import { useLanguage } from '../i18n';
 
 export default function Suppliers() {
+  const { t } = useLanguage();
   const { data, setData } = useAppData();
   const supps = data.suppliers;
 
   const addSupplier = () => {
-    const name = window.prompt('Supplier name')?.trim();
+    const name = window.prompt(t('Supplier name'))?.trim();
     if (!name) return;
-    const contact = window.prompt('Contact email or phone')?.trim();
+    const contact = window.prompt(t('Contact email or phone'))?.trim();
     if (!contact) return;
     const supplier: Supplier = {
       id: `sup-${Date.now()}`,
       name,
       contact,
       products: 0,
-      lastTransaction: 'No transactions yet',
+      lastTransaction: t('No transactions yet'),
       status: 'active',
     };
     setData((current) => ({ ...current, suppliers: [...current.suppliers, supplier] }));
   };
 
   const editSupplier = (supplier: Supplier) => {
-    const name = window.prompt('Supplier name', supplier.name)?.trim();
+    const name = window.prompt(t('Supplier name'), supplier.name)?.trim();
     if (!name) return;
-    const contact = window.prompt('Contact email or phone', supplier.contact)?.trim();
+    const contact = window.prompt(t('Contact email or phone'), supplier.contact)?.trim();
     if (!contact) return;
     setData((current) => ({
       ...current,
@@ -38,7 +40,7 @@ export default function Suppliers() {
       <div className="flex justify-end">
         <button onClick={addSupplier} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
           style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-          + Add Supplier
+          + {t('Add Supplier')}
         </button>
       </div>
 
@@ -49,7 +51,7 @@ export default function Suppliers() {
               <tr style={{ background: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
                 {['Supplier', 'Contact', 'Products', 'Last Transaction', 'Status', 'Actions'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
@@ -78,19 +80,19 @@ export default function Suppliers() {
                       style={s.status === 'active'
                         ? { background: 'rgba(106,168,79,0.12)', color: 'var(--success)' }
                         : { background: 'rgba(154,143,135,0.15)', color: 'var(--muted-foreground)' }}>
-                      {s.status === 'active' ? 'Active' : 'Inactive'}
+                      {t(s.status === 'active' ? 'Active' : 'Inactive')}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       <button onClick={() => editSupplier(s)} className="px-2 py-1 rounded-lg text-xs font-semibold"
-                        style={{ background: 'var(--muted)', color: 'var(--primary)' }}>Edit</button>
+                        style={{ background: 'var(--muted)', color: 'var(--primary)' }}>{t('Edit')}</button>
                       <button onClick={() => {
-                        if (window.confirm(`Delete ${s.name}?`)) {
+                        if (window.confirm(t('Delete supplier?').replace('{name}', s.name))) {
                           setData((current) => ({ ...current, suppliers: current.suppliers.filter((item) => item.id !== s.id) }));
                         }
                       }} className="px-2 py-1 rounded-lg text-xs font-semibold"
-                        style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)' }}>Del</button>
+                        style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)' }}>{t('Delete')}</button>
                     </div>
                   </td>
                 </tr>

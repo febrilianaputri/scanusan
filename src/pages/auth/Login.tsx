@@ -5,6 +5,7 @@ import AuthBackground from "../../components/AuthBackground"
 import type { AuthPage, Theme } from "../../types"
 
 import { ApiError } from "../../lib/api"
+import { useLanguage } from "../../i18n"
 
 type LoginState = "default" | "loading" | "error" | "success"
 
@@ -24,6 +25,7 @@ export default function Login({
   onNavigate,
   onLogin,
 }: LoginProps) {
+  const { language, setLanguage, t } = useLanguage()
   const [email, setEmail] = useState("")
 
   const [password, setPassword] = useState("")
@@ -57,24 +59,18 @@ export default function Login({
       setState("error")
 
       if (error instanceof ApiError && error.status === 403) {
-        setErrorMsg("Akun ini belum aktif. Hubungi Administrator.")
+        setErrorMsg("This account is inactive. Contact an Administrator.")
       } else if (error instanceof ApiError && error.status >= 500) {
-        setErrorMsg("Layanan server sedang bermasalah. Coba lagi nanti.")
+        setErrorMsg("The server is having problems. Please try again later.")
       } else if (
         error instanceof Error &&
         error.message.includes("Firebase client configuration")
       ) {
-        setErrorMsg(
-          "Konfigurasi Firebase belum tersedia. Hubungi Administrator.",
-        )
+        setErrorMsg("Firebase configuration is unavailable. Contact an Administrator.")
       } else if (error instanceof TypeError) {
-        setErrorMsg(
-          "Layanan autentikasi tidak dapat dijangkau. Periksa koneksi Anda.",
-        )
+        setErrorMsg("The authentication service is unreachable. Check your connection.")
       } else {
-        setErrorMsg(
-          "Login gagal. Periksa email dan kata sandi, lalu coba lagi.",
-        )
+        setErrorMsg(t("Login failed. Check your email and password, then try again."))
       }
 
       console.error("Login failed:", error)
@@ -106,7 +102,15 @@ export default function Login({
                 color: "var(--foreground)",
               }}
             >
-              {theme === "light" ? "🌙 Dark" : "☀ Light"}
+              {theme === "light" ? `🌙 ${t("Dark")}` : `☀ ${t("Light")}`}
+            </button>
+            <button
+              onClick={() => setLanguage(language === "en" ? "id" : "en")}
+              className="px-3 py-2 rounded-lg text-xs font-semibold font-body text-white"
+              style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.25)" }}
+              aria-label={language === "en" ? "Switch language to Indonesian" : "Ganti bahasa ke English"}
+            >
+              {language === "en" ? "EN" : "ID"}
             </button>
           </div>
         </div>
@@ -140,13 +144,13 @@ export default function Login({
               className="font-display font-bold text-2xl mb-1"
               style={{ color: "var(--foreground)" }}
             >
-              Welcome Back
+              {t("Welcome Back")}
             </h1>
             <p
               className="text-sm font-body mb-7"
               style={{ color: "var(--muted-foreground)" }}
             >
-              Sign in to your inventory dashboard
+              {t("Sign in to your inventory dashboard")}
             </p>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -156,11 +160,11 @@ export default function Login({
                   className="block text-xs font-semibold mb-1.5 font-body"
                   style={{ color: "var(--muted-foreground)" }}
                 >
-                  Email Address
+                  {t("Email Address")}
                 </label>
                 <input
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={t("Enter your email")}
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value)
@@ -193,12 +197,12 @@ export default function Login({
                   className="block text-xs font-semibold mb-1.5 font-body"
                   style={{ color: "var(--muted-foreground)" }}
                 >
-                  Password
+                  {t("Password")}
                 </label>
                 <div className="relative">
                   <input
                     type={showPw ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder={t("Enter your password")}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value)
@@ -244,7 +248,7 @@ export default function Login({
                     color: "var(--danger)",
                   }}
                 >
-                  ⚠ {errorMsg}
+                  ⚠ {t(errorMsg)}
                 </div>
               )}
 
@@ -258,7 +262,7 @@ export default function Login({
                     color: "var(--success)",
                   }}
                 >
-                  ✓ Login successful — redirecting...
+                  ✓ {t("Login successful — redirecting...")}
                 </div>
               )}
 
@@ -275,7 +279,7 @@ export default function Login({
                     className="text-xs font-body"
                     style={{ color: "var(--muted-foreground)" }}
                   >
-                    Remember me
+                    {t("Remember me")}
                   </span>
                 </label>
                 <button
@@ -284,7 +288,7 @@ export default function Login({
                   className="text-xs font-semibold font-body"
                   style={{ color: "var(--primary)" }}
                 >
-                  Forgot Password?
+                  {t("Forgot Password?")}
                 </button>
               </div>
 
@@ -308,10 +312,10 @@ export default function Login({
                 }}
               >
                 {state === "loading"
-                  ? "Signing in..."
+                  ? t("Signing in...")
                   : state === "success"
-                    ? "✓ Login successful"
-                    : "Sign In"}
+                    ? `✓ ${t("Login successful")}`
+                    : t("Sign In")}
               </button>
             </form>
 
@@ -319,7 +323,7 @@ export default function Login({
               className="text-center text-xs font-body mt-6"
               style={{ color: "var(--muted-foreground)" }}
             >
-              Akun pegawai dibuat oleh Administrator.
+              {t("Employee accounts are created by an Administrator.")}
             </p>
           </div>
         </div>

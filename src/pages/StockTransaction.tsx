@@ -5,12 +5,14 @@ import { useAppData } from "../data/AppDataContext"
 import { useAuth } from "../auth/AuthContext"
 
 import type { Product } from "../types"
+import { useLanguage } from "../i18n"
 
 type TxTab = "in" | "out"
 
 type ScanState = "waiting" | "scanning" | "found" | "not-found" | "insufficient" | "success"
 
 export default function StockTransaction() {
+  const { t } = useLanguage()
   const { data, setData } = useAppData()
 
   const { user } = useAuth()
@@ -81,6 +83,8 @@ export default function StockTransaction() {
 
       time: now.toLocaleTimeString("en-GB"),
 
+      createdAt: now.toISOString(),
+
       barcode: selectedProduct.barcode,
 
       product: selectedProduct.name,
@@ -139,24 +143,24 @@ export default function StockTransaction() {
         className="flex gap-1 p-1 rounded-xl w-fit"
         style={{ background: "var(--muted)" }}
       >
-        {(["in", "out"] as TxTab[]).map((t) => (
+        {(["in", "out"] as TxTab[]).map((direction) => (
           <button
-            key={t}
+            key={direction}
             onClick={() => {
-              setTab(t)
+              setTab(direction)
               reset()
             }}
             className="px-6 py-2 rounded-lg text-sm font-semibold font-body transition-all"
             style={
-              tab === t
+              tab === direction
                 ? {
-                    background: t === "in" ? "var(--success)" : "var(--danger)",
+                    background: direction === "in" ? "var(--success)" : "var(--danger)",
                     color: "#fff",
                   }
                 : { color: "var(--muted-foreground)" }
             }
           >
-            {t === "in" ? "↑ STOCK IN" : "↓ STOCK OUT"}
+            {direction === "in" ? `↑ ${t("Stock In").toUpperCase()}` : `↓ ${t("Stock Out").toUpperCase()}`}
           </button>
         ))}
       </div>
@@ -178,15 +182,14 @@ export default function StockTransaction() {
             Scanner-01
           </div>
           <div className="text-xs" style={{ color: "var(--success)" }}>
-            Connected • Ready to scan
+            {t("Connected • Ready to scan")}
           </div>
         </div>
         <div
           className="ml-auto flex gap-3 text-xs"
           style={{ color: "var(--muted-foreground)" }}
         >
-          <span>📶 Excellent</span>
-          <span>🔋 72%</span>
+          <span>📶 {t("Excellent")}</span>
         </div>
       </div>
 
@@ -203,13 +206,13 @@ export default function StockTransaction() {
                 className="font-display font-semibold text-lg"
                 style={{ color: "var(--foreground)" }}
               >
-                Waiting for barcode...
+                {t("Waiting for barcode...")}
               </p>
               <p
                 className="text-sm mt-1"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                Point your IoT scanner at a product barcode
+                {t("Point your IoT scanner at a product barcode")}
               </p>
             </div>
             <input
@@ -218,8 +221,8 @@ export default function StockTransaction() {
               onKeyDown={(event) => {
                 if (event.key === "Enter") simulate()
               }}
-              placeholder="Scan or enter barcode"
-              aria-label="Product barcode"
+              placeholder={t("Scan or enter barcode")}
+              aria-label={t("Product barcode")}
               className="w-full max-w-sm px-4 py-3 rounded-xl text-sm font-body outline-none"
               style={{
                 background: "var(--muted)",
@@ -236,7 +239,7 @@ export default function StockTransaction() {
                 border: "1px solid var(--border)",
               }}
             >
-              ▶ Simulate Scan
+              ▶ {t("Simulate Scan")}
             </button>
           </>
         )}
@@ -260,7 +263,7 @@ export default function StockTransaction() {
               className="font-display font-bold text-xl"
               style={{ color: "var(--primary)" }}
             >
-              SCANNING...
+              {t("SCANNING...")}
             </p>
           </>
         )}
@@ -273,7 +276,7 @@ export default function StockTransaction() {
                 className="font-display font-semibold"
                 style={{ color: "var(--success)" }}
               >
-                Barcode Detected
+                {t("Barcode Detected")}
               </span>
             </div>
             <div
@@ -296,7 +299,7 @@ export default function StockTransaction() {
                 className="text-sm mt-1"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                Current Stock:{" "}
+                {t("Current Stock")}:{" "}
                 <strong style={{ color: "var(--foreground)" }}>
                   {selectedProduct?.currentStock} {selectedProduct?.unit}
                 </strong>
@@ -309,7 +312,7 @@ export default function StockTransaction() {
                 className="text-xs font-semibold font-body"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                Quantity
+                {t("Quantity")}
               </label>
               <div className="flex items-center gap-3">
                 <button
@@ -348,7 +351,7 @@ export default function StockTransaction() {
                     className="text-xs"
                     style={{ color: "var(--muted-foreground)" }}
                   >
-                    New Stock
+                    {t("New Stock")}
                   </div>
                   <div
                     className="font-bold font-display"
@@ -373,7 +376,7 @@ export default function StockTransaction() {
                   border: "1px solid var(--border)",
                 }}
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 onClick={confirm}
@@ -383,7 +386,7 @@ export default function StockTransaction() {
                   color: "#fff",
                 }}
               >
-                Confirm Stock {tab === "in" ? "In" : "Out"}
+                {t("Confirm Stock")} {t(tab === "in" ? "In" : "Out")}
               </button>
             </div>
           </div>
@@ -396,18 +399,18 @@ export default function StockTransaction() {
               className="font-display font-semibold text-lg"
               style={{ color: "var(--warning)" }}
             >
-              Insufficient Stock
+              {t("Insufficient Stock")}
             </p>
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-              Requested {quantity} {selectedProduct?.unit} but only{" "}
-              {selectedProduct?.currentStock} {selectedProduct?.unit} available
+              {t("Requested")} {quantity} {selectedProduct?.unit} {t("but only")}{" "}
+              {selectedProduct?.currentStock} {selectedProduct?.unit} {t("available")}
             </p>
             <button
               onClick={() => setScanState("found")}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold font-body"
               style={{ background: "var(--muted)", color: "var(--foreground)" }}
             >
-              ← Adjust Quantity
+              ← {t("Adjust Quantity")}
             </button>
           </div>
         )}
@@ -424,15 +427,15 @@ export default function StockTransaction() {
               className="font-display font-semibold text-xl"
               style={{ color: "var(--success)" }}
             >
-              Transaction Successful!
+              {t("Transaction Successful!")}
             </p>
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-              Stock {tab === "in" ? "In" : "Out"}: {quantity}{" "}
+              {t(`Stock ${tab === "in" ? "In" : "Out"}`)}: {quantity}{" "}
               {selectedProduct?.unit} • {selectedProduct?.name}
             </p>
             <p className="text-sm">
               <span style={{ color: "var(--muted-foreground)" }}>
-                New Stock:{" "}
+                {t("New Stock")}:{" "}
               </span>
               <strong style={{ color: "var(--foreground)" }}>
                 {newStock} {selectedProduct?.unit}
@@ -447,17 +450,17 @@ export default function StockTransaction() {
               className="font-display font-semibold text-lg"
               style={{ color: "var(--danger)" }}
             >
-              Product not found
+              {t("Product not found")}
             </p>
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-              Check the barcode or add the product to inventory first.
+              {t("Check the barcode or add the product to inventory first.")}
             </p>
             <button
               onClick={reset}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold font-body"
               style={{ background: "var(--muted)", color: "var(--foreground)" }}
             >
-              Scan Again
+              {t("Scan Again")}
             </button>
           </div>
         )}

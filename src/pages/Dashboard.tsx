@@ -4,8 +4,10 @@ import {
 import StatCard from '../components/StatCard';
 import LiveScanCenter from '../components/LiveScanCenter';
 import { useAppData } from '../data/AppDataContext';
+import { useLanguage } from '../i18n';
 
 export default function Dashboard() {
+  const { t } = useLanguage();
   const { data } = useAppData();
   const recordedMovement = data.transactions.slice(0, 8).reverse().map((transaction) => ({
     time: transaction.time,
@@ -20,11 +22,11 @@ export default function Dashboard() {
     <div className="flex flex-col gap-6">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard icon="📦" label="Products" value={String(data.products.length)} trend="In inventory" trendUp />
-        <StatCard icon="↑" label="Stock In" value={`+${stockInToday}`} trend="Recorded quantity" trendUp accent="rgba(106,168,79,0.12)" />
-        <StatCard icon="↓" label="Stock Out" value={`-${stockOutToday}`} trend="Recorded quantity" accent="rgba(217,83,79,0.08)" />
-        <StatCard icon="⚠" label="Low Stock" value={String(data.products.filter((product) => product.status === 'low').length)} trend="Needs restocking" accent="rgba(233,180,76,0.12)" />
-        <StatCard icon="🔴" label="Out of Stock" value={String(data.products.filter((product) => product.status === 'out').length)} trend="Unavailable" accent="rgba(217,83,79,0.08)" />
+        <StatCard icon="📦" label={t("Products")} value={String(data.products.length)} trend={t("In inventory")} trendUp />
+        <StatCard icon="↑" label={t("Stock In")} value={`+${stockInToday}`} trend={t("Recorded quantity")} trendUp accent="rgba(106,168,79,0.12)" />
+        <StatCard icon="↓" label={t("Stock Out")} value={`-${stockOutToday}`} trend={t("Recorded quantity")} accent="rgba(217,83,79,0.08)" />
+        <StatCard icon="⚠" label={t("Low Stock")} value={String(data.products.filter((product) => product.status === 'low').length)} trend={t("Needs restocking")} accent="rgba(233,180,76,0.12)" />
+        <StatCard icon="🔴" label={t("Out of Stock")} value={String(data.products.filter((product) => product.status === 'out').length)} trend={t("Unavailable")} accent="rgba(217,83,79,0.08)" />
       </div>
 
       {/* Charts + scanner row */}
@@ -36,7 +38,7 @@ export default function Dashboard() {
         >
             <div className="flex items-center justify-between mb-4">
             <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>
-              Recent Stock Movement
+              {t('Recent Stock Movement')}
             </h2>
           </div>
           <ResponsiveContainer width="100%" height={200}>
@@ -83,12 +85,11 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-2">
               {[
                 { label: 'WiFi', value: 'Excellent', icon: '📶' },
-                { label: 'Battery', value: '72%', icon: '🔋' },
                 { label: 'Last Scan', value: '10:32:21', icon: '⏱' },
                 { label: 'Total Scans', value: '248', icon: '◎' },
               ].map((item) => (
                 <div key={item.label} className="rounded-xl px-3 py-2" style={{ background: 'var(--muted)' }}>
-                  <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{item.icon} {item.label}</div>
+                  <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{item.icon} {t(item.label)}</div>
                   <div className="font-semibold text-sm font-body mt-0.5" style={{ color: 'var(--foreground)' }}>
                     {item.value}
                   </div>
@@ -109,7 +110,7 @@ export default function Dashboard() {
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
           <h2 className="font-display font-semibold text-base mb-4" style={{ color: 'var(--foreground)' }}>
-            Recent Transactions
+            {t('Recent Transactions')}
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm font-body">
@@ -117,7 +118,7 @@ export default function Dashboard() {
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   {['Time', 'Product', 'Type', 'Qty', 'Scanner', 'User'].map((h) => (
                     <th key={h} className="text-left pb-2 pr-3 text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
-                      {h}
+                      {t(h)}
                     </th>
                   ))}
                 </tr>
