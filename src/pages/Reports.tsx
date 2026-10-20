@@ -9,7 +9,8 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
-import { useEffect, useState } from "react"
+import { useState, useMemo } from "react"
+import * as XLSX from "xlsx"
 
 import { useAppData } from "../data/AppDataContext"
 import { useLanguage } from "../i18n"
@@ -21,23 +22,26 @@ export default function Reports() {
   const { language, t } = useLanguage()
 
   const [exportError, setExportError] = useState("")
-
   const [exporting, setExporting] = useState(false)
   const [category, setCategory] = useState(ALL_CATEGORIES)
   const [dateRange, setDateRange] = useState("all")
   const [customFrom, setCustomFrom] = useState("")
   const [customTo, setCustomTo] = useState("")
-  const [categories, setCategories] = useState<string[]>([])
-  const [categoryError, setCategoryError] = useState("")
+
+  // 1. Ambil daftar kategori unik langsung dari data produk Firebase
+  const categories = useMemo(() => {
+    const cats = data.products
+      .map((p) => p.category)
+      .filter((c): c is string => Boolean(c) && c.trim() !== "")
+    return Array.from(new Set(cats))
+  }, [data.products])
 
   const chartData = data.transactions
     .slice(0, 7)
     .reverse()
     .map((transaction) => ({
       day: transaction.time,
-
       in: transaction.type === "in" ? transaction.quantity : 0,
-
       out: transaction.type === "out" ? transaction.quantity : 0,
     }))
 
@@ -52,7 +56,6 @@ export default function Reports() {
   const movements = data.products
     .map((product) => ({
       product,
-
       quantity: data.transactions
         .filter((transaction) => transaction.barcode === product.barcode)
         .reduce((sum, transaction) => sum + transaction.quantity, 0),
@@ -62,43 +65,6 @@ export default function Reports() {
 
   const maxMovement = Math.max(1, ...movements.map((item) => item.quantity))
 
-  useEffect(() => {
-    let active = true
-    const loadCategories = async () => {
-      try {
-        const response = await fetch("/api/reports/categories", {
-          credentials: "same-origin",
-          cache: "no-store",
-        })
-        if (response.status === 401)
-          window.dispatchEvent(new Event("kami:unauthorized"))
-        if (!response.ok)
-          throw new Error(`Export categories failed to load (${response.status})`)
-        const result: unknown = await response.json()
-        if (
-          typeof result !== "object" ||
-          result === null ||
-          !("categories" in result) ||
-          !Array.isArray(result.categories) ||
-          !result.categories.every((item) => typeof item === "string")
-        ) {
-          throw new Error("Invalid export category response.")
-        }
-        if (active) {
-          setCategories(result.categories)
-          setCategoryError("")
-        }
-      } catch (error) {
-        console.error("Export categories could not be loaded:", error)
-        if (active) setCategoryError("Unable to load export categories.")
-      }
-    }
-    void loadCategories()
-    return () => {
-      active = false
-    }
-  }, [])
-
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, "0")
@@ -106,85 +72,77 @@ export default function Reports() {
     return `${year}-${month}-${day}`
   }
 
-  const exportReport = async () => {
+  // 2. Fungsi Export Excel langsung dari data Firebase tanpa Backend API
+  const exportReport = () => {
     setExporting(true)
-
     setExportError("")
 
     try {
-      let from: string | undefined
-      let to: string | undefined
+      let filteredTransactions = [...data.transactions]
+
+      // Filter berdasarkan kategori produk
+      if (category !== ALL_CATEGORIES) {
+        const productBarcodes = data.products
+          .filter((p) => p.category === category)
+          .map((p) => p.barcode)
+        filteredTransactions = filteredTransactions.filter((t) =>
+          productBarcodes.includes(t.barcode)
+        )
+      }
+
+      // Filter berdasarkan rentang tanggal
       if (dateRange === "custom") {
         if (!customFrom || !customTo || customFrom > customTo) {
-          throw new Error("Please select a valid date range.")
+          throw new Error(t("Please select a valid date range."))
         }
-        from = customFrom
-        to = customTo
+        filteredTransactions = filteredTransactions.filter((t) => {
+          if (!t.createdAt && !t.time) return false
+          const txDate = (t.createdAt || t.time).split("T")[0]
+          return txDate >= customFrom && txDate <= customTo
+        })
       } else if (dateRange !== "all") {
         const days = Number(dateRange)
         const today = new Date()
         const start = new Date(today)
         start.setDate(today.getDate() - days + 1)
-        from = formatLocalDate(start)
-        to = formatLocalDate(today)
+        const fromStr = formatLocalDate(start)
+        const toStr = formatLocalDate(today)
+
+        filteredTransactions = filteredTransactions.filter((t) => {
+          if (!t.createdAt && !t.time) return false
+          const txDate = (t.createdAt || t.time).split("T")[0]
+          return txDate >= fromStr && txDate <= toStr
+        })
       }
 
-      const params = new URLSearchParams()
-      if (category !== ALL_CATEGORIES) params.set("category", category)
-      if (from && to) {
-        params.set("from", from)
-        params.set("to", to)
-      }
-      const query = params.size ? `?${params.toString()}` : ""
+      // Susun format data Excel yang rapi
+      const excelRows = filteredTransactions.map((t, idx) => ({
+        No: idx + 1,
+        Waktu: t.time || "-",
+        Barcode: t.barcode,
+        "Nama Produk": t.product,
+        Tipe: t.type === "in" ? "Masuk (In)" : "Keluar (Out)",
+        Jumlah: t.quantity,
+        "Stok Awal": t.prevStock,
+        "Stok Akhir": t.currentStock,
+        Petugas: t.user || "-",
+        Scanner: t.scanner || "-",
+      }))
 
-      const response = await fetch(`/api/reports/export.xlsx${query}`, {
-        credentials: "same-origin",
-
-        cache: "no-store",
-      })
-
-      if (response.status === 401)
-        window.dispatchEvent(new Event("kami:unauthorized"))
-
-      if (!response.ok) {
-        let message = language === "id"
-          ? `Ekspor gagal (${response.status})`
-          : `Export failed (${response.status})`
-
-        try {
-          const body: unknown = await response.json()
-
-          if (
-            typeof body === "object" &&
-            body !== null &&
-            "error" in body &&
-            typeof body.error === "string"
-          ) {
-            message = body.error
-          }
-        } catch {
-          // Keep the HTTP status if an error response is not JSON.
-        }
-
-        throw new Error(message)
+      if (excelRows.length === 0) {
+        throw new Error(t("No data available for the selected filter."))
       }
 
-      const url = URL.createObjectURL(await response.blob())
+      // Export ke spreadsheet .xlsx
+      const worksheet = XLSX.utils.json_to_sheet(excelRows)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Transaksi")
 
-      const link = document.createElement("a")
-
-      link.href = url
-
-      link.download = "kami-inventory-report.xlsx"
-
-      link.click()
-
-      URL.revokeObjectURL(url)
+      XLSX.writeFile(workbook, `Laporan-Inventaris-${formatLocalDate(new Date())}.xlsx`)
     } catch (error) {
       console.error("Report export failed:", error)
-
       setExportError(
-        error instanceof Error ? error.message : "Report export failed.",
+        error instanceof Error ? error.message : "Report export failed."
       )
     } finally {
       setExporting(false)
@@ -251,17 +209,12 @@ export default function Reports() {
           {t("Filter category and date range before exporting.")}
           {dateRange !== "all" && ` ${t("Transactions without a recorded date are excluded when a date filter is selected.")}`}
         </p>
-        {categoryError && (
-          <p role="alert" className="text-xs" style={{ color: "var(--danger)" }}>
-            {t(categoryError)}
-          </p>
-        )}
         <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           {t("All recorded activity")} · {data.transactions.length} {language === "id" ? "transaksi" : "transactions"}
         </span>
       </div>
       {exportError && (
-        <p role="alert" className="text-sm" style={{ color: "var(--danger)" }}>
+        <p role="alert" className="text-sm font-semibold" style={{ color: "var(--danger)" }}>
           {t(exportError)}
         </p>
       )}
@@ -275,21 +228,18 @@ export default function Reports() {
             icon: "↑",
             color: "var(--success)",
           },
-
           {
             label: t("Total Stock Out"),
             value: String(totalOut),
             icon: "↓",
             color: "var(--danger)",
           },
-
           {
             label: t("Net Movement"),
             value: `${totalIn - totalOut > 0 ? "+" : ""}${totalIn - totalOut}`,
             icon: "≡",
             color: "var(--info)",
           },
-
           {
             label: t("Total Transactions"),
             value: String(data.transactions.length),
@@ -350,7 +300,6 @@ export default function Reports() {
               contentStyle={{
                 background: "var(--card)",
                 border: "1px solid var(--border)",
-
                 borderRadius: "8px",
                 color: "var(--foreground)",
                 fontSize: "12px",

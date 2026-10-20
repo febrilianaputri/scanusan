@@ -33,9 +33,8 @@ export interface Product {
   name: string;
   barcode: string;
   category: string;
-  currentStock: number;
-  unit: string;
-  minStock: number;
+  currentStock: string;
+  minStock: string;
   status: 'good' | 'low' | 'out';
   location: string;
   supplier: string;

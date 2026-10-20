@@ -1,9 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppData } from '../data/AppDataContext';
 import type { Product } from '../types';
 import { useLanguage } from '../i18n';
-
-const categories = ['All', 'Networking', 'Accessories', 'Fiber'];
 
 interface AddModalProps {
   onClose: () => void;
@@ -14,7 +12,7 @@ interface AddModalProps {
 function AddModal({ onClose, onSave, product }: AddModalProps) {
   const { t } = useLanguage();
   const [form, setForm] = useState(() => product ? {
-    name: product.name, barcode: product.barcode, category: product.category, unit: product.unit,
+    name: product.name, barcode: product.barcode, category: product.category, unit: product.unit || 'pcs',
     minStock: product.minStock, currentStock: product.currentStock, location: product.location, supplier: product.supplier,
   } : {
     name: '', barcode: '', category: 'Networking', unit: 'pcs',
@@ -77,7 +75,7 @@ function AddModal({ onClose, onSave, product }: AddModalProps) {
           {field('Category', 'category')}
           {field('Unit', 'unit')}
           {field('Minimum Stock', 'minStock', 'number')}
-          {field('Initial Stock', 'currentStock', 'number')}
+          {field('Current Stock', 'currentStock', 'number')} 
           {field('Location', 'location')}
           {field('Supplier', 'supplier')}
         </div>
@@ -117,6 +115,14 @@ export default function Inventory() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+
+  // Kategori Dinamis dari Data Produk
+  const categories = useMemo(() => {
+    const existingCategories = prods
+      .map((p) => p.category)
+      .filter((c): c is string => Boolean(c) && c.trim() !== '');
+    return ['All', ...Array.from(new Set(existingCategories))];
+  }, [prods]);
 
   const filtered = prods.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search);
