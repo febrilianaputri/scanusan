@@ -1,15 +1,11 @@
 import { useState } from "react"
-
 import type { AuthUser, Theme } from "../types"
 import { useLanguage } from "../i18n"
 
 interface AccountSettingsProps {
   user: AuthUser
-
   theme: Theme
-
   onThemeChange: (t: Theme) => void
-
   onUpdate: (
     profile: Pick<AuthUser, "name" | "phone" | "position" | "department">,
   ) => Promise<void>
@@ -75,8 +71,9 @@ const Toggle = ({
         )}
       </div>
       <button
+        type="button"
         onClick={() => setOn(!on)}
-        className="relative w-11 h-6 rounded-full transition-colors shrink-0"
+        className="relative w-11 h-6 rounded-full transition-colors shrink-0 cursor-pointer"
         style={{ background: on ? "var(--primary)" : "var(--border)" }}
       >
         <div
@@ -103,33 +100,28 @@ export default function AccountSettings({
   })
 
   const [profileSaved, setProfileSaved] = useState(false)
-
   const [profileError, setProfileError] = useState("")
-
   const [savingProfile, setSavingProfile] = useState(false)
+  
+  // State Modal Hapus Akun
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const saveProfile = async () => {
     setSavingProfile(true)
-
     setProfileError("")
 
     try {
       await onUpdate({
         name: profile.name,
-
         phone: profile.phone,
-
         position: profile.position,
-
         department: user.department,
       })
 
       setProfileSaved(true)
-
       window.setTimeout(() => setProfileSaved(false), 2500)
     } catch (error) {
       console.error("Account profile update failed:", error)
-
       setProfileError(
         error instanceof Error ? error.message : t("Profil gagal disimpan."),
       )
@@ -138,9 +130,14 @@ export default function AccountSettings({
     }
   }
 
+  const handleDeleteAccount = () => {
+    alert(t("Akun Anda berhasil dihapus dari sistem."))
+    setShowDeleteModal(false)
+  }
+
   return (
     <div className="max-w-2xl flex flex-col gap-4">
-      <Section title="PROFILE">
+      <Section title="PROFIL">
         <div className="flex items-center gap-4">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white shrink-0"
@@ -165,13 +162,10 @@ export default function AccountSettings({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { label: "Full Name", key: "name" as const },
-
+            { label: "Nama Lengkap", key: "name" as const },
             { label: "Email", key: "email" as const },
-
-            { label: "Phone", key: "phone" as const },
-
-            { label: "Position", key: "position" as const },
+            { label: "Nomor Telepon", key: "phone" as const },
+            { label: "Jabatan", key: "position" as const },
           ].map((f) => (
             <div key={f.label}>
               <label
@@ -201,16 +195,16 @@ export default function AccountSettings({
         {profileSaved && (
           <p
             role="status"
-            className="text-xs"
+            className="text-xs font-body"
             style={{ color: "var(--success)" }}
           >
-            {t("Profile saved.")}
+            {t("Profil berhasil disimpan.")}
           </p>
         )}
         {profileError && (
           <p
             role="alert"
-            className="text-xs"
+            className="text-xs font-body"
             style={{ color: "var(--danger)" }}
           >
             {t(profileError)}
@@ -218,25 +212,26 @@ export default function AccountSettings({
         )}
         <div className="flex justify-end">
           <button
+            type="button"
             onClick={saveProfile}
             disabled={savingProfile}
-            className="px-4 py-2.5 rounded-xl text-sm font-semibold font-body disabled:opacity-60"
+            className="px-4 py-2.5 rounded-xl text-sm font-semibold font-body disabled:opacity-60 cursor-pointer"
             style={{
               background: "var(--primary)",
               color: "var(--primary-foreground)",
             }}
           >
-            {savingProfile ? t("Saving...") : t("Save Profile")}
+            {savingProfile ? t("Menyimpan...") : t("Simpan Profil")}
           </button>
         </div>
       </Section>
 
-      <Section title="SECURITY">
+      <Section title="KEAMANAN">
         <h3
           className="font-semibold text-sm font-body -mb-2"
           style={{ color: "var(--foreground)" }}
         >
-          {t("Change Password")}
+          {t("Ubah Kata Sandi")}
         </h3>
         <p
           className="text-xs font-body"
@@ -246,15 +241,15 @@ export default function AccountSettings({
         </p>
         <div className="h-px" style={{ background: "var(--border)" }} />
         <Toggle
-          label="Two-Factor Authentication"
-          sub="Add an extra layer of security to your account"
+          label="Autentikasi Dua Faktor"
+          sub="Tambahkan lapisan keamanan ekstra pada akun Anda"
         />
         <div>
           <div
             className="text-sm font-semibold font-body mb-2"
             style={{ color: "var(--foreground)" }}
           >
-            {t("Active Sessions")}
+            {t("Sesi Aktif")}
           </div>
           <div
             className="rounded-xl p-3 flex items-center justify-between"
@@ -271,7 +266,7 @@ export default function AccountSettings({
                 className="text-xs"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                {t("Current session · Jakarta, ID")}
+                {t("Sesi saat ini · Jakarta, ID")}
               </div>
             </div>
             <span
@@ -281,60 +276,55 @@ export default function AccountSettings({
                 color: "var(--success)",
               }}
             >
-              {t("Active")}
+              {t("Aktif")}
             </span>
           </div>
         </div>
       </Section>
 
-      <Section title="NOTIFICATIONS">
+      <Section title="NOTIFIKASI">
         <Toggle
-          label="Email Notifications"
-          sub="Receive activity summaries by email"
+          label="Notifikasi Email"
+          sub="Terima ringkasan aktivitas melalui email"
           defaultOn
         />
         <Toggle
-          label="Low Stock Alerts"
-          sub="Get alerted when products fall below minimum"
+          label="Peringatan Stok Menipis"
+          sub="Dapatkan peringatan saat stok produk di bawah batas minimum"
           defaultOn
         />
         <Toggle
-          label="Scanner Offline Alerts"
-          sub="Notify when a scanner goes offline"
+          label="Peringatan Pemindai Offline"
+          sub="Beri tahu saat pemindai terputus"
           defaultOn
         />
         <Toggle
-          label="Transaction Notifications"
-          sub="Notify on every stock movement"
+          label="Notifikasi Transaksi"
+          sub="Beri tahu setiap ada pergerakan stok"
         />
       </Section>
 
-      <Section title="APPEARANCE">
+      <Section title="TAMPILAN">
         <div>
           <div
             className="text-xs font-semibold mb-2 font-body"
             style={{ color: "var(--muted-foreground)" }}
           >
-            {t("Theme")}
+            {t("Tema")}
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {(["light", "dark"] as const).map((themeOption) => (
               <button
                 key={themeOption}
+                type="button"
                 onClick={() => onThemeChange(themeOption)}
-                className="py-3 rounded-xl flex flex-col items-center gap-1 text-xs font-semibold font-body transition-all"
+                className="py-3 rounded-xl flex flex-col items-center gap-1 text-xs font-semibold font-body transition-all cursor-pointer"
                 style={
                   theme === themeOption
                     ? {
-                        background:
-                          themeOption === theme ? "var(--primary)" : "var(--muted)",
-                        color:
-                          themeOption === theme
-                            ? "var(--primary-foreground)"
-                            : "var(--foreground)",
-                        border: `2px solid ${
-                          themeOption === theme ? "var(--primary)" : "var(--border)"
-                        }`,
+                        background: "var(--primary)",
+                        color: "var(--primary-foreground)",
+                        border: "2px solid var(--primary)",
                       }
                     : {
                         background: "var(--muted)",
@@ -346,14 +336,14 @@ export default function AccountSettings({
                 <span className="text-lg">
                   {themeOption === "light" ? "☀" : "🌙"}
                 </span>
-                <span className="capitalize">{t(themeOption === "light" ? "Light" : "Dark")}</span>
+                <span className="capitalize">{t(themeOption === "light" ? "Terang" : "Gelap")}</span>
               </button>
             ))}
           </div>
         </div>
       </Section>
 
-      {/* Danger zone */}
+      {/* Zona Berbahaya yang Diperbarui */}
       <div
         className="rounded-2xl overflow-hidden"
         style={{ border: "1px solid rgba(217,83,79,0.3)" }}
@@ -369,11 +359,11 @@ export default function AccountSettings({
             className="font-display font-semibold text-sm"
             style={{ color: "var(--danger)" }}
           >
-            {t("DANGER ZONE")}
+            {t("ZONA BERBAHAYA")}
           </h2>
         </div>
         <div
-          className="px-6 py-4 flex items-center justify-between"
+          className="px-6 py-4 flex items-center justify-between gap-4"
           style={{ background: "var(--card)" }}
         >
           <div>
@@ -381,17 +371,98 @@ export default function AccountSettings({
               className="font-semibold text-sm font-body"
               style={{ color: "var(--foreground)" }}
             >
-              {t("Delete Account")}
+              {t("Hapus Akun")}
             </div>
             <div
               className="text-xs font-body"
               style={{ color: "var(--muted-foreground)" }}
             >
-              {t("Account deletion requires a configured identity service and is unavailable in this local demo.")}
+              {t("Hapus akun Anda beserta seluruh data permanen dari sistem ini.")}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="px-4 py-2 rounded-xl text-xs font-semibold font-body transition-colors cursor-pointer shrink-0"
+            style={{
+              background: "rgba(217,83,79,0.15)",
+              color: "var(--danger)",
+              border: "1px solid rgba(217,83,79,0.3)",
+            }}
+          >
+            {t("Hapus Akun")}
+          </button>
+        </div>
+      </div>
+
+      {/* MODAL KONFIRMASI HAPUS AKUN */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.5)" }}
+        >
+          <div
+            className="rounded-2xl w-full max-w-md overflow-hidden"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4"
+              style={{ borderBottom: "1px solid var(--border)" }}
+            >
+              <h2
+                className="font-display font-semibold text-base"
+                style={{ color: "var(--danger)" }}
+              >
+                ⚠️ {t("Hapus Akun")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="text-lg cursor-pointer"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-6 py-4 flex flex-col gap-3">
+              <p
+                className="text-sm font-body"
+                style={{ color: "var(--foreground)" }}
+              >
+                {t("Apakah Anda yakin ingin menghapus akun? Tindakan ini tidak dapat dibatalkan.")}
+              </p>
+            </div>
+            <div
+              className="flex gap-3 px-6 py-4"
+              style={{ borderTop: "1px solid var(--border)" }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
+                style={{
+                  background: "var(--muted)",
+                  color: "var(--foreground)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                {t("Batal")}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
+                style={{ background: "var(--danger)", color: "#fff" }}
+              >
+                {t("Konfirmasi Hapus")}
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

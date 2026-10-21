@@ -1,11 +1,9 @@
 import { useState } from "react"
-
 import type { AuthUser } from "../types"
 import { useLanguage } from "../i18n"
 
 interface ProfileProps {
   user: AuthUser
-
   onUpdate: (
     profile: Pick<AuthUser, "name" | "phone" | "position" | "department">,
   ) => Promise<void>
@@ -13,73 +11,50 @@ interface ProfileProps {
 
 const activity = [
   { time: "10:32", action: "Stock Out — CAT6 Cable" },
-
   { time: "09:45", action: "Updated product — RJ45 Connector" },
-
   { time: "09:12", action: "Stock In — Fiber Optic Patch" },
-
   { time: "Yesterday", action: "Logged in" },
-
   { time: "Yesterday", action: "Generated report — Stock Movement" },
 ]
 
 export default function Profile({ user, onUpdate }: ProfileProps) {
   const { t } = useLanguage()
   const [editing, setEditing] = useState(false)
-
   const [form, setForm] = useState({ ...user })
-
   const [saving, setSaving] = useState(false)
-
   const [saved, setSaved] = useState(false)
-
   const [error, setError] = useState("")
 
   const handleSave = async () => {
     setSaving(true)
-
     setError("")
 
     try {
       await onUpdate({
         name: form.name,
-
         phone: form.phone,
-
         position: form.position,
-
         department: form.department,
       })
 
       setSaving(false)
-
       setSaved(true)
-
       setEditing(false)
 
       setTimeout(() => setSaved(false), 2000)
     } catch (saveError) {
       console.error("Profile update failed:", saveError)
-
       setError(
         saveError instanceof Error
           ? saveError.message
           : "Profil gagal disimpan.",
       )
-
       setSaving(false)
     }
   }
 
-  const InfoRow = ({
-    label,
-    value,
-    field,
-  }: {
-    label: string
-    value?: string
-    field: keyof typeof form
-  }) => (
+  // Helper render field agar tidak re-mount elemen input
+  const renderField = (label: string, field: keyof typeof form, isEmail = false) => (
     <div className="flex flex-col gap-1.5">
       <label
         className="text-xs font-semibold font-body"
@@ -87,11 +62,11 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
       >
         {t(label)}
       </label>
-      {editing && field !== "email" ? (
+      {editing && !isEmail ? (
         <input
-          value={form[field] as string || ""}
-          onChange={(e) => setForm({ ...form, [field]: e.target.value })}
-          className="px-3 py-2.5 rounded-xl text-sm font-body outline-none"
+          value={(form[field] as string) || ""}
+          onChange={(e) => setForm((prev) => ({ ...prev, [field]: e.target.value }))}
+          className="px-3 py-2.5 rounded-xl text-sm font-body outline-none transition-all"
           style={{
             background: "var(--muted)",
             border: "1px solid var(--border)",
@@ -105,7 +80,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
           className="text-sm font-body py-1"
           style={{ color: "var(--foreground)" }}
         >
-          {value || "—"}
+          {(user[field] as string) || "—"}
         </div>
       )}
     </div>
@@ -149,7 +124,7 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
               className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-white"
               style={{ background: "var(--primary)" }}
             >
-              {user.name[0]}
+              {user.name ? user.name[0] : "A"}
             </div>
           </div>
           <div>
@@ -219,7 +194,10 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
               </h2>
               {!editing ? (
                 <button
-                  onClick={() => setEditing(true)}
+                  onClick={() => {
+                    setForm({ ...user })
+                    setEditing(true)
+                  }}
                   className="px-4 py-2 rounded-xl text-xs font-semibold font-body"
                   style={{
                     background: "var(--muted)",
@@ -260,19 +238,11 @@ export default function Profile({ user, onUpdate }: ProfileProps) {
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InfoRow label="Full Name" value={user.name} field="name" />
-              <InfoRow label="Email Address" value={user.email} field="email" />
-              <InfoRow label="Phone Number" value={user.phone} field="phone" />
-              <InfoRow
-                label="Position"
-                value={user.position}
-                field="position"
-              />
-              <InfoRow
-                label="Department"
-                value={user.department}
-                field="department"
-              />
+              {renderField("Full Name", "name")}
+              {renderField("Email Address", "email", true)}
+              {renderField("Phone Number", "phone")}
+              {renderField("Position", "position")}
+              {renderField("Department", "department")}
             </div>
           </div>
 
