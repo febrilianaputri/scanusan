@@ -7,21 +7,27 @@ interface AddModalProps {
   onClose: () => void;
   onSave: (p: Omit<Product, 'id' | 'status'>) => void;
   product?: Product | null;
+  existingCategories: string[];
 }
 
-function AddModal({ onClose, onSave, product }: AddModalProps) {
+function AddModal({ onClose, onSave, product, existingCategories }: AddModalProps) {
   const { t } = useLanguage();
   const [form, setForm] = useState(() => product ? {
     name: product.name, barcode: product.barcode, category: product.category, unit: product.unit || 'pcs',
     minStock: product.minStock, currentStock: product.currentStock, location: product.location, supplier: product.supplier,
   } : {
-    name: '', barcode: '', category: 'Networking', unit: 'pcs',
+    name: '', barcode: '', category: existingCategories[0] || 'Networking', unit: 'pcs',
     minStock: 10, currentStock: 0, location: '', supplier: '',
   });
 
+  // State untuk menangani mode input kategori baru
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
+
   const handleSave = () => {
     if (!form.name || !form.barcode) return;
-    onSave({ ...form });
+    const finalCategory = isCustomCategory && customCategory.trim() ? customCategory.trim() : form.category;
+    onSave({ ...form, category: finalCategory });
     onClose();
   };
 
@@ -72,7 +78,44 @@ function AddModal({ onClose, onSave, product }: AddModalProps) {
               {t('A connected scanner can type directly into this field.')}
             </p>
           </div>
-          {field('Category', 'category')}
+          
+          {/* Category Dropdown dengan Opsi Tambah Baru */}
+          <div>
+            <label className="block text-xs font-semibold mb-1 font-body" style={{ color: 'var(--muted-foreground)' }}>
+              {t('Category')}
+            </label>
+            <select
+              value={isCustomCategory ? '__NEW__' : form.category}
+              onChange={(e) => {
+                if (e.target.value === '__NEW__') {
+                  setIsCustomCategory(true);
+                } else {
+                  setIsCustomCategory(false);
+                  setForm({ ...form, category: e.target.value });
+                }
+              }}
+              className="w-full px-3 py-2.5 rounded-xl text-sm font-body outline-none"
+              style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+            >
+              {existingCategories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+              <option value="__NEW__"> {t('+ Add New Category')}</option>
+            </select>
+
+            {isCustomCategory && (
+              <input
+                type="text"
+                placeholder={t('Enter new category name...')}
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                className="w-full mt-2 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
+                style={{ background: 'var(--muted)', border: '1px solid var(--primary)', color: 'var(--foreground)' }}
+                autoFocus
+              />
+            )}
+          </div>
+
           {field('Unit', 'unit')}
           {field('Minimum Stock', 'minStock', 'number')}
           {field('Current Stock', 'currentStock', 'number')} 
@@ -116,24 +159,34 @@ export default function Inventory() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
 
-  // Kategori Dinamis dari Data Produk
+  // Kategori Dinamis & Case-Insensitive
   const categories = useMemo(() => {
-    const existingCategories = prods
-      .map((p) => p.category)
-      .filter((c): c is string => Boolean(c) && c.trim() !== '');
-    return ['All', ...Array.from(new Set(existingCategories))];
+    const map = new Map<string, string>();
+    prods.forEach((p) => {
+      if (p.category && p.category.trim() !== '') {
+        const lower = p.category.toLowerCase().trim();
+        if (!map.has(lower)) {
+          map.set(lower, p.category.trim());
+        }
+      }
+    });
+    return ['All', ...Array.from(map.values())];
   }, [prods]);
+
+  const modalCategories = useMemo(() => {
+    return categories.filter(c => c !== 'All');
+  }, [categories]);
 
   const filtered = prods.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search);
-    const matchCat = category === 'All' || p.category === category;
+    const matchCat = category === 'All' || (p.category && p.category.toLowerCase().trim() === category.toLowerCase().trim());
     const matchStatus = statusFilter === 'All' || p.status === statusFilter.toLowerCase().replace(' ', '');
     return matchSearch && matchCat && matchStatus;
   });
 
-  const handleAdd = (data: Omit<Product, 'id' | 'status'>) => {
-    const status: Product['status'] = data.currentStock === 0 ? 'out' : data.currentStock < data.minStock ? 'low' : 'good';
-    setData((current) => ({ ...current, products: [...current.products, { ...data, id: String(Date.now()), status }] }));
+  const handleAdd = (productData: Omit<Product, 'id' | 'status'>) => {
+    const status: Product['status'] = productData.currentStock === 0 ? 'out' : productData.currentStock < productData.minStock ? 'low' : 'good';
+    setData((current) => ({ ...current, products: [...current.products, { ...productData, id: String(Date.now()), status }] }));
   };
 
   const handleSave = (productData: Omit<Product, 'id' | 'status'>) => {
@@ -173,7 +226,7 @@ export default function Inventory() {
             className="px-3 py-2 rounded-xl text-sm font-body outline-none"
             style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
           >
-            {categories.map((c) => <option key={c}>{c}</option>)}
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <select
             value={statusFilter}
@@ -263,7 +316,14 @@ export default function Inventory() {
         </div>
       </div>
 
-      {showModal && <AddModal product={editing} onClose={() => { setShowModal(false); setEditing(null); }} onSave={handleSave} />}
+      {showModal && (
+        <AddModal
+          product={editing}
+          existingCategories={modalCategories.length > 0 ? modalCategories : ['Networking', 'General']}
+          onClose={() => { setShowModal(false); setEditing(null); }}
+          onSave={handleSave}
+        />
+      )}
     </div>
   );
 }
