@@ -20,6 +20,32 @@ export default function Transactions() {
   const scanners = [...new Set(data.transactions.map((transaction) => transaction.scanner))];
   const users = [...new Set(data.transactions.map((transaction) => transaction.user))];
 
+  const formatNiceDateTime = (rawTime?: string) => {
+    if (!rawTime) return '—';
+    try {
+      if (rawTime.includes('T')) {
+        const d = new Date(rawTime);
+        if (!isNaN(d.getTime())) {
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          const hour = String(d.getHours()).padStart(2, '0');
+          const minute = String(d.getMinutes()).padStart(2, '0');
+          return `${day}/${month}/${year} ${hour}:${minute}`;
+        }
+      }
+      if (rawTime.length <= 8 && rawTime.includes(':')) {
+        const today = new Date().toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
+        return `${today} ${rawTime}`;
+      }
+    } catch (e) {}
+    return rawTime;
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {/* Tabs */}
@@ -28,7 +54,7 @@ export default function Transactions() {
           <button
             key={direction}
             onClick={() => setTab(direction)}
-            className="px-4 py-2 rounded-lg text-sm font-semibold font-body capitalize transition-all"
+            className="px-4 py-2 rounded-lg text-sm font-semibold font-body capitalize transition-all cursor-pointer"
             style={tab === direction
               ? { background: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
               : { color: 'var(--muted-foreground)' }}
@@ -53,12 +79,12 @@ export default function Transactions() {
             style={{ color: 'var(--foreground)' }}
           />
         </div>
-        <select value={scanner} onChange={(event) => setScanner(event.target.value)} className="px-3 py-2 rounded-xl text-sm font-body outline-none"
+        <select value={scanner} onChange={(event) => setScanner(event.target.value)} className="px-3 py-2 rounded-xl text-sm font-body outline-none cursor-pointer"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
           <option value="All Scanners">{t('All Scanners')}</option>
           {scanners.map((value) => <option key={value}>{value}</option>)}
         </select>
-        <select value={user} onChange={(event) => setUser(event.target.value)} className="px-3 py-2 rounded-xl text-sm font-body outline-none"
+        <select value={user} onChange={(event) => setUser(event.target.value)} className="px-3 py-2 rounded-xl text-sm font-body outline-none cursor-pointer"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
           <option value="All Users">{t('All Users')}</option>
           {users.map((value) => <option key={value}>{value}</option>)}
@@ -71,7 +97,7 @@ export default function Transactions() {
           <table className="w-full text-sm font-body">
             <thead>
               <tr style={{ background: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
-                {['Time', 'Barcode', 'Product', 'Type', 'Qty', 'Prev Stock', 'Current Stock', 'Scanner', 'User'].map((h) => (
+                {['Waktu', 'Barcode', 'Produk', 'Jenis', 'Jumlah', 'Stok Sebelumnya', 'Stok Saat Ini', 'Pemindai', 'Pengguna'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
                     {t(h)}
                   </th>
@@ -87,7 +113,9 @@ export default function Transactions() {
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--muted)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>{tx.time}</td>
+                  <td className="px-4 py-3 text-xs font-mono whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
+                    {formatNiceDateTime(tx.createdAt || tx.time)}
+                  </td>
                   <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
                     {tx.barcode}
                   </td>
@@ -123,5 +151,4 @@ export default function Transactions() {
       </div>
     </div>
   );
-
 }

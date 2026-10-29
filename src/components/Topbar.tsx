@@ -44,11 +44,11 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
           </p>
         </div>
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body"
+          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
             style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
             {t('Cancel')}
           </button>
-          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body"
+          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
             style={{ background: 'var(--danger)', color: '#fff' }}>
             {t('Sign Out')}
           </button>
@@ -103,7 +103,7 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
         className="fixed top-0 right-0 left-0 lg:left-60 h-[70px] z-10 flex items-center px-6 gap-4"
         style={{ background: 'var(--card)', borderBottom: '1px solid var(--border)' }}
       >
-        <button onClick={onMenuToggle} className="lg:hidden p-2 rounded-lg" style={{ color: 'var(--foreground)' }}>☰</button>
+        <button onClick={onMenuToggle} className="lg:hidden p-2 rounded-lg cursor-pointer" style={{ color: 'var(--foreground)' }}>☰</button>
 
         <div className="hidden lg:block">
           <h1 className="font-display font-semibold text-lg leading-tight" style={{ color: 'var(--foreground)' }}>{t(title)}</h1>
@@ -135,7 +135,7 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
               style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
               {searchResults.map(([page, details]) => (
                 <button key={page} onClick={() => navigateToSearchResult(page)}
-                  className="block w-full text-left px-3 py-2.5 text-sm font-body"
+                  className="block w-full text-left px-3 py-2.5 text-sm font-body cursor-pointer"
                   style={{ color: 'var(--foreground)', borderBottom: '1px solid var(--border)' }}>
                   <span className="block font-semibold">{details.title}</span>
                   <span className="block text-xs" style={{ color: 'var(--muted-foreground)' }}>{details.subtitle}</span>
@@ -145,17 +145,17 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
           )}
         </div>
 
-        {/* Theme */}
+        {/* Theme & Language */}
         <button
           onClick={() => setLanguage(language === 'en' ? 'id' : 'en')}
-          className="px-3 py-2 rounded-lg text-xs font-semibold font-body"
+          className="px-3 py-2 rounded-lg text-xs font-semibold font-body cursor-pointer"
           style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
           aria-label={language === 'en' ? 'Switch language to Indonesian' : 'Ganti bahasa ke English'}
           title={language === 'en' ? 'Switch language to Indonesian' : 'Ganti bahasa ke English'}>
           {language === 'en' ? 'EN' : 'ID'}
         </button>
         <button onClick={onThemeToggle}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold font-body"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold font-body cursor-pointer"
           style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
           <span>{theme === 'light' ? '🌙' : '☀'}</span>
           <span className="hidden sm:inline">{t(theme === 'light' ? 'Dark' : 'Light')}</span>
@@ -164,27 +164,38 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
           <button onClick={() => { setShowNotif(!showNotif); setShowProfile(false); }}
-            className="relative p-2 rounded-lg" style={{ color: 'var(--foreground)' }}>
+            className="relative p-2 rounded-lg cursor-pointer" style={{ color: 'var(--foreground)' }}>
             🔔
             {notifications.length > 0 && <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-white flex items-center justify-center"
               style={{ background: 'var(--danger)', fontSize: '9px' }}>{notifications.length}</span>}
           </button>
           {showNotif && (
-            <div className="absolute right-0 top-12 w-72 rounded-xl shadow-lg z-50 overflow-hidden"
+            <div className="absolute right-0 top-12 w-80 rounded-xl shadow-lg z-50 overflow-hidden flex flex-col"
               style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-              <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+              <div className="px-4 py-3 shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
                 <span className="font-display font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{t('Notifications')}</span>
               </div>
-              {notifications.length === 0 && <p className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{t('No active inventory alerts.')}</p>}
-              {notifications.map((n) => (
-                <button key={n.msg} onClick={() => { onNavigate('inventory'); setShowNotif(false); }} className="w-full text-left px-4 py-3 flex gap-3 items-start" style={{ borderBottom: '1px solid var(--border)' }}>
-                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.color }} />
-                  <div>
-                    <p className="text-xs font-body" style={{ color: 'var(--foreground)' }}>{n.msg}</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{t('Open inventory')}</p>
-                  </div>
-                </button>
-              ))}
+              
+              {/* Area scrollable untuk daftar notifikasi */}
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 && (
+                  <p className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{t('No active inventory alerts.')}</p>
+                )}
+                {notifications.map((n) => (
+                  <button key={n.msg} onClick={() => { onNavigate('inventory'); setShowNotif(false); }} 
+                    className="w-full text-left px-4 py-3 flex gap-3 items-start cursor-pointer transition-colors" 
+                    style={{ borderBottom: '1px solid var(--border)' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--muted)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.color }} />
+                    <div>
+                      <p className="text-xs font-body" style={{ color: 'var(--foreground)' }}>{n.msg}</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{t('Open inventory')}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -193,7 +204,7 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
         <div className="relative" ref={profileRef}>
           <button
             onClick={() => { setShowProfile(!showProfile); setShowNotif(false); }}
-            className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl transition-colors"
+            className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl transition-colors cursor-pointer"
             style={{ background: showProfile ? 'var(--muted)' : 'transparent' }}
           >
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
@@ -231,7 +242,7 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
                 ].map((item) => (
                   <button key={item.label}
                     onClick={() => { onNavigate(item.page); setShowProfile(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-body text-left transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-body text-left transition-colors cursor-pointer"
                     style={{ color: 'var(--foreground)' }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--muted)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
@@ -243,7 +254,7 @@ export default function Topbar({ theme, onThemeToggle, currentPage, onMenuToggle
               {/* Logout */}
               <button
                 onClick={() => { setShowProfile(false); setShowLogout(true); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-body text-left transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-body text-left transition-colors cursor-pointer"
                 style={{ color: 'var(--danger)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(217,83,79,0.06)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>

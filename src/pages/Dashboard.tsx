@@ -9,11 +9,53 @@ import { useLanguage } from '../i18n';
 export default function Dashboard() {
   const { t } = useLanguage();
   const { data } = useAppData();
+
+  // Helper universal untuk merapikan format waktu ISO / mentah menjadi DD/MM/YYYY HH:mm
+  const formatNiceDateTime = (rawTime?: string) => {
+    if (!rawTime) return '—';
+    try {
+      if (rawTime.includes('T')) {
+        const d = new Date(rawTime);
+        if (!isNaN(d.getTime())) {
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          const hour = String(d.getHours()).padStart(2, '0');
+          const minute = String(d.getMinutes()).padStart(2, '0');
+          return `${day}/${month}/${year} ${hour}:${minute}`;
+        }
+      }
+      if (rawTime.length <= 8 && rawTime.includes(':')) {
+        const today = new Date().toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
+        return `${today} ${rawTime}`;
+      }
+    } catch (e) {
+      // fallback jika gagal parse
+    }
+    return rawTime;
+  };
+
+  // Format khusus ringkas untuk sumbu X grafik (DD/MM HH:mm)
+  const formatChartTime = (rawTime?: string) => {
+    const formatted = formatNiceDateTime(rawTime);
+    if (formatted.includes(' ')) {
+      const [datePart, timePart] = formatted.split(' ');
+      const [d, m] = datePart.split('/');
+      return `${d}/${m} ${timePart}`;
+    }
+    return formatted;
+  };
+
   const recordedMovement = data.transactions.slice(0, 8).reverse().map((transaction) => ({
-    time: transaction.time,
+    time: formatChartTime(transaction.createdAt || transaction.time),
     in: transaction.type === 'in' ? transaction.quantity : 0,
     out: transaction.type === 'out' ? transaction.quantity : 0,
   }));
+
   const stockInToday = data.transactions.filter((transaction) => transaction.type === 'in').reduce((sum, transaction) => sum + transaction.quantity, 0);
   const stockOutToday = data.transactions.filter((transaction) => transaction.type === 'out').reduce((sum, transaction) => sum + transaction.quantity, 0);
   const lowStockProducts = data.products.filter((product) => product.status === 'low' || product.status === 'out');
@@ -36,7 +78,7 @@ export default function Dashboard() {
           className="lg:col-span-2 rounded-2xl p-5"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
-            <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>
               {t('Recent Stock Movement')}
             </h2>
@@ -64,7 +106,6 @@ export default function Dashboard() {
 
         {/* Scanner status + Live scan */}
         <div className="flex flex-col gap-4">
-          {/* Scanner health */}
           <div
             className="rounded-2xl p-5"
             style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
@@ -85,12 +126,12 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-2">
               {[
                 { label: 'WiFi', value: 'Excellent', icon: '📶' },
-                { label: 'Last Scan', value: '10:32:21', icon: '⏱' },
+                { label: 'Last Scan', value: `${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })} 10:32`, icon: '⏱' },
                 { label: 'Total Scans', value: '248', icon: '◎' },
               ].map((item) => (
                 <div key={item.label} className="rounded-xl px-3 py-2" style={{ background: 'var(--muted)' }}>
                   <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{item.icon} {t(item.label)}</div>
-                  <div className="font-semibold text-sm font-body mt-0.5" style={{ color: 'var(--foreground)' }}>
+                  <div className="font-semibold text-xs font-body mt-0.5" style={{ color: 'var(--foreground)' }}>
                     {item.value}
                   </div>
                 </div>
@@ -116,7 +157,7 @@ export default function Dashboard() {
             <table className="w-full text-sm font-body">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Time', 'Product', 'Type', 'Qty', 'Scanner', 'User'].map((h) => (
+                  {['Waktu', 'Product', 'Type', 'Qty', 'Scanner', 'User'].map((h) => (
                     <th key={h} className="text-left pb-2 pr-3 text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
                       {t(h)}
                     </th>
@@ -130,7 +171,9 @@ export default function Dashboard() {
                     className="transition-colors"
                     style={{ borderBottom: '1px solid var(--border)' }}
                   >
-                    <td className="py-2.5 pr-3 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>{tx.time}</td>
+                    <td className="py-2.5 pr-3 text-xs font-mono whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
+                      {formatNiceDateTime(tx.createdAt || tx.time)}
+                    </td>
                     <td className="py-2.5 pr-3 text-xs font-medium" style={{ color: 'var(--foreground)' }}>{tx.product}</td>
                     <td className="py-2.5 pr-3">
                       <span

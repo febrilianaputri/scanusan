@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAppData } from '../data/AppDataContext';
 import type { Product } from '../types';
 import { useLanguage } from '../i18n';
+import { validateBarcode } from '../utils/barcodeValidator'; // 👈 Import validator
 
 type ScanState = 'waiting' | 'scanning' | 'success' | 'error';
 
@@ -11,24 +12,42 @@ export default function LiveScanCenter() {
   const [state, setState] = useState<ScanState>('waiting');
   const [simulating, setSimulating] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const simulate = () => {
+  const simulate = (inputBarcode?: string) => {
     if (simulating) return;
     setSimulating(true);
     setState('scanning');
+
     setTimeout(() => {
-      const product = data.products.find((item) => item.currentStock > 0);
-      if (!product) {
+      // Ambil produk acak atau gunakan barcode uji coba
+      const targetBarcode = inputBarcode || (data.products.length > 0 ? data.products[0].barcode : 'UNKNOWN-999');
+      
+      // 🛡️ VALIDASI OPSI B: Cek apakah barcode terdaftar di produk PT (Case-Insensitive)
+      const check = validateBarcode(targetBarcode, data.products);
+
+      if (!check.valid || !check.product) {
         setState('error');
+        setErrorMessage(t('Barcode tidak dikenali / Bukan produk resmi PT!'));
         setSimulating(false);
         return;
       }
+
+      const product = check.product;
+      if (product.currentStock <= 0) {
+        setState('error');
+        setErrorMessage(t('Stok produk habis!'));
+        setSimulating(false);
+        return;
+      }
+
       const now = new Date();
       const updatedProduct = {
         ...product,
         currentStock: product.currentStock - 1,
         status: product.currentStock - 1 === 0 ? 'out' as const : product.currentStock - 1 < product.minStock ? 'low' as const : 'good' as const,
       };
+
       setData((current) => ({
         ...current,
         products: current.products.map((item) => item.id === product.id ? updatedProduct : item),
@@ -46,18 +65,22 @@ export default function LiveScanCenter() {
           user: 'operator',
         }, ...current.transactions],
       }));
+
       setScannedProduct(updatedProduct);
       setState('success');
       setSimulating(false);
     }, 1800);
   };
 
-  const reset = () => setState('waiting');
+  const reset = () => {
+    setState('waiting');
+    setErrorMessage('');
+  };
 
   useEffect(() => {
     if (state === 'success' || state === 'error') {
-      const t = setTimeout(reset, 5000);
-      return () => clearTimeout(t);
+      const tTimer = setTimeout(reset, 5000);
+      return () => clearTimeout(tTimer);
     }
   }, [state]);
 
@@ -121,7 +144,7 @@ export default function LiveScanCenter() {
             <div className="flex items-center gap-2">
               <span className="text-lg" style={{ color: 'var(--success)' }}>✓</span>
               <span className="text-sm font-semibold font-display" style={{ color: 'var(--success)' }}>
-                {t('Barcode Detected')}
+                {t('Barcode Detected & Verified')}
               </span>
             </div>
             <div className="text-xs font-mono py-1.5 px-2 rounded-lg" style={{ background: 'var(--secondary)', color: 'var(--foreground)' }}>
@@ -148,26 +171,45 @@ export default function LiveScanCenter() {
         {state === 'error' && (
           <>
             <div className="text-3xl">⚠</div>
-            <p className="text-sm font-semibold font-display" style={{ color: 'var(--warning)' }}>
-              {t('No Scannable Stock')}
+            <p className="text-sm font-semibold font-display text-center" style={{ color: 'var(--danger)' }}>
+              {errorMessage || t('Unauthorized Barcode')}
             </p>
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{t('Add an in-stock product before simulating a scan.')}</p>
+            <p className="text-xs text-center" style={{ color: 'var(--muted-foreground)' }}>
+              {t('Scanner menolak produk di luar inventaris PT.')}
+            </p>
           </>
         )}
       </div>
 
-      <button
-        onClick={state === 'waiting' ? simulate : reset}
-        disabled={simulating}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold font-body transition-all duration-200"
-        style={{
-          background: simulating ? 'var(--muted)' : 'var(--primary)',
-          color: simulating ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
-          cursor: simulating ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {state === 'waiting' ? `▶ ${t('Simulate Scan')}` : state === 'scanning' ? t('Scanning...') : `↩ ${t('Reset')}`}
-      </button>
+      <div className="flex flex-col gap-2">
+        <button
+          onClick={() => state === 'waiting' ? simulate() : reset()}
+          disabled={simulating}
+          className="w-full py-2.5 rounded-xl text-sm font-semibold font-body transition-all duration-200 cursor-pointer"
+          style={{
+            background: simulating ? 'var(--muted)' : 'var(--primary)',
+            color: simulating ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
+          }}
+        >
+          {state === 'waiting' ? `▶ ${t('Simulate Valid Scan')}` : state === 'scanning' ? t('Scanning...') : `↩ ${t('Reset')}`}
+        </button>
+
+        {/* Tombol uji coba simulasi scan barcode PALSU/ASING */}
+        {state === 'waiting' && (
+          <button
+            onClick={() => simulate('BARCODE-PALSU-999')}
+            disabled={simulating}
+            className="w-full py-2 rounded-xl text-xs font-semibold font-body cursor-pointer transition-all"
+            style={{
+              background: 'rgba(217,83,79,0.1)',
+              color: 'var(--danger)',
+              border: '1px dashed var(--danger)',
+            }}
+          >
+            🚫 {t('Simulasi Scan Barcode Asing/Palsu')}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

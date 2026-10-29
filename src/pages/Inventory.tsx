@@ -20,7 +20,6 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
     minStock: 10, currentStock: 0, location: '', supplier: '',
   });
 
-  // State untuk menangani mode input kategori baru
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
 
@@ -57,7 +56,7 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
       <div className="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>{t(product ? 'Edit Product' : 'Add New Product')}</h2>
-          <button onClick={onClose} className="text-lg" style={{ color: 'var(--muted-foreground)' }}>✕</button>
+          <button onClick={onClose} className="text-lg cursor-pointer" style={{ color: 'var(--muted-foreground)' }}>✕</button>
         </div>
         <div className="px-6 py-4 flex flex-col gap-3">
           {field('Product Name', 'name')}
@@ -79,7 +78,6 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
             </p>
           </div>
           
-          {/* Category Dropdown dengan Opsi Tambah Baru */}
           <div>
             <label className="block text-xs font-semibold mb-1 font-body" style={{ color: 'var(--muted-foreground)' }}>
               {t('Category')}
@@ -94,19 +92,19 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
                   setForm({ ...form, category: e.target.value });
                 }
               }}
-              className="w-full px-3 py-2.5 rounded-xl text-sm font-body outline-none"
+              className="w-full px-3 py-2.5 rounded-xl text-sm font-body outline-none cursor-pointer"
               style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
             >
               {existingCategories.map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
-              <option value="__NEW__"> {t('+ Add New Category')}</option>
+              <option value="__NEW__"> {t('+ Tambah Kategori Baru')}</option>
             </select>
 
             {isCustomCategory && (
               <input
                 type="text"
-                placeholder={t('Enter new category name...')}
+                placeholder={t('Ketik nama kategori baru...')}
                 value={customCategory}
                 onChange={(e) => setCustomCategory(e.target.value)}
                 className="w-full mt-2 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
@@ -125,14 +123,14 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
         <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border)' }}>
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body"
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
             style={{ background: 'var(--muted)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
           >
             {t('Cancel')}
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body"
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
             style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
           >
             {t(product ? 'Save Changes' : 'Save Product')}
@@ -158,9 +156,9 @@ export default function Inventory() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null); // State untuk modal konfirmasi hapus
 
-  // Kategori Dinamis & Case-Insensitive
-  const categories = useMemo(() => {
+  const categoriesMap = useMemo(() => {
     const map = new Map<string, string>();
     prods.forEach((p) => {
       if (p.category && p.category.trim() !== '') {
@@ -170,8 +168,12 @@ export default function Inventory() {
         }
       }
     });
-    return ['All', ...Array.from(map.values())];
+    return map;
   }, [prods]);
+
+  const categories = useMemo(() => {
+    return ['All', ...Array.from(categoriesMap.values())];
+  }, [categoriesMap]);
 
   const modalCategories = useMemo(() => {
     return categories.filter(c => c !== 'All');
@@ -202,6 +204,15 @@ export default function Inventory() {
     handleAdd(productData);
   };
 
+  const confirmDelete = () => {
+    if (!deletingProduct) return;
+    setData((current) => ({
+      ...current,
+      products: current.products.filter((product) => product.id !== deletingProduct.id),
+    }));
+    setDeletingProduct(null);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
@@ -223,7 +234,7 @@ export default function Inventory() {
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="px-3 py-2 rounded-xl text-sm font-body outline-none"
+            className="px-3 py-2 rounded-xl text-sm font-body outline-none cursor-pointer"
             style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
           >
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -231,7 +242,7 @@ export default function Inventory() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl text-sm font-body outline-none"
+            className="px-3 py-2 rounded-xl text-sm font-body outline-none cursor-pointer"
             style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
           >
             {['All', 'Good', 'Low', 'Out'].map((s) => <option key={s} value={s}>{t(s)}</option>)}
@@ -239,7 +250,7 @@ export default function Inventory() {
         </div>
         <button
           onClick={() => { setEditing(null); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
           style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
         >
           + {t('Add Product')}
@@ -293,13 +304,9 @@ export default function Inventory() {
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{p.supplier}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        <button onClick={() => { setEditing(p); setShowModal(true); }} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors"
+                        <button onClick={() => { setEditing(p); setShowModal(true); }} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                           style={{ background: 'var(--muted)', color: 'var(--primary)' }}>{t('Edit')}</button>
-                        <button onClick={() => {
-                          if (window.confirm(t('Delete product?').replace('{name}', p.name))) {
-                            setData((current) => ({ ...current, products: current.products.filter((product) => product.id !== p.id) }));
-                          }
-                        }} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors"
+                        <button onClick={() => setDeletingProduct(p)} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                           style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)' }}>{t('Delete')}</button>
                       </div>
                     </td>
@@ -316,6 +323,7 @@ export default function Inventory() {
         </div>
       </div>
 
+      {/* Modal Tambah/Edit Produk */}
       {showModal && (
         <AddModal
           product={editing}
@@ -323,6 +331,43 @@ export default function Inventory() {
           onClose={() => { setShowModal(false); setEditing(null); }}
           onSave={handleSave}
         />
+      )}
+
+      {/* Modal Konfirmasi Hapus Kustom */}
+      {deletingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(217,83,79,0.12)', color: 'var(--danger)' }}>
+                ⚠️
+              </div>
+              <div>
+                <h3 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>
+                  {t('Hapus Produk')}
+                </h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                  {t('Apakah Anda yakin ingin menghapus produk')} <strong style={{ color: 'var(--foreground)' }}>{deletingProduct.name}</strong>?
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => setDeletingProduct(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
+                style={{ background: 'var(--muted)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
+              >
+                {t('Cancel')}
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
+                style={{ background: 'var(--danger)', color: '#fff' }}
+              >
+                {t('Delete')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

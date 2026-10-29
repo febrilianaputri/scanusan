@@ -78,15 +78,11 @@ export default function App() {
 
 function Application({
   theme,
-
   setTheme,
-
   toggleTheme,
 }: {
   theme: Theme
-
   setTheme: (theme: Theme) => void
-
   toggleTheme: () => void
 }) {
   const { t } = useLanguage()
@@ -100,7 +96,6 @@ function Application({
   } = useAuth()
 
   const [authPage, setAuthPage] = useState<AuthPage>("login")
-
   const [authError, setAuthError] = useState("")
 
   if (checkingSession) {
@@ -175,42 +170,28 @@ function Application({
 
 function AuthenticatedApplication({
   user,
-
   theme,
-
   setTheme,
-
   toggleTheme,
-
   onLogout,
-
   onProfileUpdate,
-
   authError,
 }: {
   user: AuthUser
-
   theme: Theme
-
   setTheme: (theme: Theme) => void
-
   toggleTheme: () => void
-
   onLogout: () => void
-
   onProfileUpdate: (
     profile: Pick<AuthUser, "name" | "phone" | "position" | "department">,
   ) => Promise<void>
-
   authError: string
 }) {
   const { t } = useLanguage()
   const { error: dataError, loading: dataLoading } = useAppData()
 
   const [page, setPage] = useState<Page>("dashboard")
-
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
   const [notice, setNotice] = useState("")
 
   useEffect(() => {
@@ -220,14 +201,11 @@ function AuthenticatedApplication({
   const navigate = (nextPage: Page) => {
     if (adminPages.includes(nextPage) && user.role !== "admin") {
       setNotice("403 — You do not have permission to open this page.")
-
       setPage("dashboard")
-
       return
     }
 
     setNotice("")
-
     setPage(nextPage)
   }
 
@@ -285,7 +263,7 @@ function AuthenticatedApplication({
 
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen w-full overflow-x-hidden"
       style={{ background: "var(--background)", color: "var(--foreground)" }}
     >
       <Sidebar
@@ -296,7 +274,7 @@ function AuthenticatedApplication({
         role={user.role}
       />
 
-      <div className="lg:pl-60">
+      <div className="flex flex-col min-h-screen transition-all lg:pl-60">
         <Topbar
           theme={theme}
           onThemeToggle={toggleTheme}
@@ -307,8 +285,8 @@ function AuthenticatedApplication({
           onLogout={onLogout}
         />
 
-        <main className="pt-[70px] min-h-screen">
-          <div className="p-6 lg:p-8">
+        <main className="flex-1 pt-[70px]">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
             {(dataError || notice || authError) && (
               <div
                 role="alert"
@@ -339,14 +317,14 @@ function AuthenticatedApplication({
       {page !== "stock-transaction" && (
         <button
           onClick={() => navigate("stock-transaction")}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-lg font-semibold text-sm font-body transition-all hover:scale-105"
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-lg font-semibold text-sm font-body transition-all hover:scale-105 cursor-pointer"
           style={{
             background: "var(--primary)",
             color: "var(--primary-foreground)",
           }}
         >
           <span className="text-lg">📡</span>
-          {t("Stock Transaction")}
+          <span className="hidden sm:inline">{t("Stock Transaction")}</span>
         </button>
       )}
     </div>

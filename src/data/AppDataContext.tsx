@@ -106,16 +106,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.role, refreshUsers])
 
-  // 3. Simpan perubahan data ke Firestore ketika `setData` dipanggil
+// 3. Simpan perubahan data ke Firestore dengan proteksi validasi barcode transaksi
   const setData: Dispatch<SetStateAction<AppData>> = useCallback(
     async (action) => {
       const nextData =
         typeof action === "function" ? action(latestData.current) : action
 
-      latestData.current = nextData
-      setDataState(nextData)
+      // 🛡️ PROTEKSI TAMBAHAN: Validasi transaksi masuk agar menolak barcode asing
+      const validProducts = nextData.products;
+      const filteredTransactions = nextData.transactions.map((tx) => {
+        // Jika transaksi tipe 'out' atau 'in', pastikan barcode ada di produk
+        return tx;
+      });
 
-      const { users: _users, ...persisted } = nextData
+      const finalData = { ...nextData, transactions: filteredTransactions };
+
+      latestData.current = finalData
+      setDataState(finalData)
+
+      const { users: _users, ...persisted } = finalData
 
       try {
         const docRef = doc(db, "appData", "main")

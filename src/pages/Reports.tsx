@@ -24,46 +24,10 @@ export default function Reports() {
   const [exportError, setExportError] = useState("")
   const [exporting, setExporting] = useState(false)
   const [category, setCategory] = useState(ALL_CATEGORIES)
+  const [typeFilter, setTypeFilter] = useState("all")
   const [dateRange, setDateRange] = useState("all")
   const [customFrom, setCustomFrom] = useState("")
   const [customTo, setCustomTo] = useState("")
-
-  // 1. Ambil daftar kategori unik langsung dari data produk Firebase
-  const categories = useMemo(() => {
-    const cats = data.products
-      .map((p) => p.category)
-      .filter((c): c is string => Boolean(c) && c.trim() !== "")
-    return Array.from(new Set(cats))
-  }, [data.products])
-
-  const chartData = data.transactions
-    .slice(0, 7)
-    .reverse()
-    .map((transaction) => ({
-      day: transaction.time,
-      in: transaction.type === "in" ? transaction.quantity : 0,
-      out: transaction.type === "out" ? transaction.quantity : 0,
-    }))
-
-  const totalIn = data.transactions
-    .filter((transaction) => transaction.type === "in")
-    .reduce((sum, transaction) => sum + transaction.quantity, 0)
-
-  const totalOut = data.transactions
-    .filter((transaction) => transaction.type === "out")
-    .reduce((sum, transaction) => sum + transaction.quantity, 0)
-
-  const movements = data.products
-    .map((product) => ({
-      product,
-      quantity: data.transactions
-        .filter((transaction) => transaction.barcode === product.barcode)
-        .reduce((sum, transaction) => sum + transaction.quantity, 0),
-    }))
-    .sort((a, b) => b.quantity - a.quantity)
-    .slice(0, 5)
-
-  const maxMovement = Math.max(1, ...movements.map((item) => item.quantity))
 
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear()
@@ -72,53 +36,162 @@ export default function Reports() {
     return `${year}-${month}-${day}`
   }
 
-  // 2. Fungsi Export Excel langsung dari data Firebase tanpa Backend API
+  const formatNiceDateTime = (rawTime?: string) => {
+    if (!rawTime) return "—"
+    try {
+      if (rawTime.includes("T")) {
+        const d = new Date(rawTime)
+        if (!isNaN(d.getTime())) {
+          const day = String(d.getDate()).padStart(2, "0")
+          const month = String(d.getMonth() + 1).padStart(2, "0")
+          const year = d.getFullYear()
+          const hour = String(d.getHours()).padStart(2, "0")
+          const minute = String(d.getMinutes()).padStart(2, "0")
+          return `${day}/${month}/${year} ${hour}:${minute}`
+        }
+      }
+      if (rawTime.length <= 8 && rawTime.includes(":")) {
+        const today = new Date().toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+        return `${today} ${rawTime}`
+      }
+    } catch (e) {}
+    return rawTime
+  }
+
+  const getNormalizedDateTime = (t: { createdAt?: string; time?: string }) => {
+    const raw = t.createdAt || t.time || ""
+    if (!raw) return ""
+    if (raw.length <= 8 && raw.includes(":")) {
+      const todayStr = formatLocalDate(new Date())
+      return `${todayStr} ${raw}`
+    }
+    return raw
+  }
+
+  // Kategori Dinamis & Case-Insensitive (menggabungkan huruf besar/kecil yang mirip seperti di Inventaris)
+  const categoriesMap = useMemo(() => {
+    const map = new Map<string, string>() // lowercase -> original formatted name
+    data.products.forEach((p) => {
+      if (p.category && p.category.trim() !== "") {
+        const lower = p.category.toLowerCase().trim()
+        if (!map.has(lower)) {
+          map.set(lower, p.category.trim())
+        }
+      }
+    })
+    return map
+  }, [data.products])
+
+  const categories = useMemo(() => {
+    return Array.from(categoriesMap.values())
+  }, [categoriesMap])
+
+  const filteredTransactions = useMemo(() => {
+    let txs = [...data.transactions]
+
+    // Filter berdasarkan kategori secara Case-Insensitive
+    if (category !== ALL_CATEGORIES) {
+      const targetLower = category.toLowerCase().trim()
+      const productBarcodes = data.products
+        .filter((p) => p.category && p.category.toLowerCase().trim() === targetLower)
+        .map((p) => p.barcode)
+      txs = txs.filter((t) => productBarcodes.includes(t.barcode))
+    }
+
+    if (typeFilter !== "all") {
+      txs = txs.filter((t) => t.type === typeFilter)
+    }
+
+    if (dateRange === "custom") {
+      if (customFrom && customTo) {
+        txs = txs.filter((t) => {
+          const fullDt = getNormalizedDateTime(t)
+          if (!fullDt) return false
+          const txDate = fullDt.split(" ")[0].split("T")[0]
+          return txDate >= customFrom && txDate <= customTo
+        })
+      }
+    } else if (dateRange !== "all") {
+      const days = Number(dateRange)
+      const today = new Date()
+      const start = new Date(today)
+      start.setDate(today.getDate() - days + 1)
+      const fromStr = formatLocalDate(start)
+      const toStr = formatLocalDate(today)
+
+      txs = txs.filter((t) => {
+        const fullDt = getNormalizedDateTime(t)
+        if (!fullDt) return false
+        const txDate = fullDt.split(" ")[0].split("T")[0]
+        return txDate >= fromStr && txDate <= toStr
+      })
+    }
+
+    return txs
+  }, [data.transactions, data.products, category, typeFilter, dateRange, customFrom, customTo])
+
+  const chartData = useMemo(() => {
+    return filteredTransactions
+      .slice(0, 7)
+      .reverse()
+      .map((transaction) => {
+        const formatted = formatNiceDateTime(transaction.createdAt || transaction.time)
+        let displayTime = formatted
+        if (formatted.includes(" ")) {
+          const [datePart, timePart] = formatted.split(" ")
+          const [d, m] = datePart.split("/")
+          displayTime = `${d}/${m} ${timePart}`
+        }
+        return {
+          day: displayTime,
+          in: transaction.type === "in" ? transaction.quantity : 0,
+          out: transaction.type === "out" ? transaction.quantity : 0,
+        }
+      })
+  }, [filteredTransactions])
+
+  const totalIn = filteredTransactions
+    .filter((transaction) => transaction.type === "in")
+    .reduce((sum, transaction) => sum + transaction.quantity, 0)
+
+  const totalOut = filteredTransactions
+    .filter((transaction) => transaction.type === "out")
+    .reduce((sum, transaction) => sum + transaction.quantity, 0)
+
+  const movements = data.products
+    .map((product) => ({
+      product,
+      quantity: filteredTransactions
+        .filter((transaction) => transaction.barcode === product.barcode)
+        .reduce((sum, transaction) => sum + transaction.quantity, 0),
+    }))
+    .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 5)
+
+  const maxMovement = Math.max(1, ...movements.map((item) => item.quantity))
+
   const exportReport = () => {
     setExporting(true)
     setExportError("")
 
     try {
-      let filteredTransactions = [...data.transactions]
-
-      // Filter berdasarkan kategori produk
-      if (category !== ALL_CATEGORIES) {
-        const productBarcodes = data.products
-          .filter((p) => p.category === category)
-          .map((p) => p.barcode)
-        filteredTransactions = filteredTransactions.filter((t) =>
-          productBarcodes.includes(t.barcode)
-        )
+      if (filteredTransactions.length === 0) {
+        throw new Error(t("No data available for the selected filter."))
       }
 
-      // Filter berdasarkan rentang tanggal
-      if (dateRange === "custom") {
-        if (!customFrom || !customTo || customFrom > customTo) {
-          throw new Error(t("Please select a valid date range."))
-        }
-        filteredTransactions = filteredTransactions.filter((t) => {
-          if (!t.createdAt && !t.time) return false
-          const txDate = (t.createdAt || t.time).split("T")[0]
-          return txDate >= customFrom && txDate <= customTo
-        })
-      } else if (dateRange !== "all") {
-        const days = Number(dateRange)
-        const today = new Date()
-        const start = new Date(today)
-        start.setDate(today.getDate() - days + 1)
-        const fromStr = formatLocalDate(start)
-        const toStr = formatLocalDate(today)
+      const sortedForExport = [...filteredTransactions].sort((a, b) => {
+        const timeA = getNormalizedDateTime(a)
+        const timeB = getNormalizedDateTime(b)
+        return timeA.localeCompare(timeB)
+      })
 
-        filteredTransactions = filteredTransactions.filter((t) => {
-          if (!t.createdAt && !t.time) return false
-          const txDate = (t.createdAt || t.time).split("T")[0]
-          return txDate >= fromStr && txDate <= toStr
-        })
-      }
-
-      // Susun format data Excel yang rapi
-      const excelRows = filteredTransactions.map((t, idx) => ({
+      const excelRows = sortedForExport.map((t, idx) => ({
         No: idx + 1,
-        Waktu: t.time || "-",
+        Waktu: formatNiceDateTime(t.createdAt || t.time),
         Barcode: t.barcode,
         "Nama Produk": t.product,
         Tipe: t.type === "in" ? "Masuk (In)" : "Keluar (Out)",
@@ -129,11 +202,6 @@ export default function Reports() {
         Scanner: t.scanner || "-",
       }))
 
-      if (excelRows.length === 0) {
-        throw new Error(t("No data available for the selected filter."))
-      }
-
-      // Export ke spreadsheet .xlsx
       const worksheet = XLSX.utils.json_to_sheet(excelRows)
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Transaksi")
@@ -161,19 +229,34 @@ export default function Reports() {
             <select
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              className="min-w-44 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
+              className="min-w-36 px-3 py-2.5 rounded-xl text-sm font-body outline-none cursor-pointer"
               style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
             >
               <option value={ALL_CATEGORIES}>{t("All Categories")}</option>
               {categories.map((value) => <option key={value} value={value}>{value}</option>)}
             </select>
           </label>
+
+          <label className="flex flex-col gap-1 text-xs font-semibold" style={{ color: "var(--muted-foreground)" }}>
+            {t("Tipe Transaksi")}
+            <select
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value)}
+              className="min-w-36 px-3 py-2.5 rounded-xl text-sm font-body outline-none cursor-pointer"
+              style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+            >
+              <option value="all">{t("Semua Tipe")}</option>
+              <option value="in">{t("Stok Masuk Saja")}</option>
+              <option value="out">{t("Stok Keluar Saja")}</option>
+            </select>
+          </label>
+
           <label className="flex flex-col gap-1 text-xs font-semibold" style={{ color: "var(--muted-foreground)" }}>
             {t("Date range")}
             <select
               value={dateRange}
               onChange={(event) => setDateRange(event.target.value)}
-              className="min-w-44 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
+              className="min-w-36 px-3 py-2.5 rounded-xl text-sm font-body outline-none cursor-pointer"
               style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
             >
               <option value="all">{t("All dates")}</option>
@@ -199,18 +282,14 @@ export default function Reports() {
           <button
             onClick={exportReport}
             disabled={exporting}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body disabled:opacity-60 cursor-pointer"
             style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
           >
             {exporting ? t("Exporting...") : `↓ ${t("Export Report")}`}
           </button>
         </div>
-        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-          {t("Filter category and date range before exporting.")}
-          {dateRange !== "all" && ` ${t("Transactions without a recorded date are excluded when a date filter is selected.")}`}
-        </p>
-        <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-          {t("All recorded activity")} · {data.transactions.length} {language === "id" ? "transaksi" : "transactions"}
+        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+          {filteredTransactions.length} {language === "id" ? "transaksi ditemukan dari" : "transactions found from"} {data.transactions.length} {language === "id" ? "total transaksi" : "total transactions"}
         </span>
       </div>
       {exportError && (
@@ -242,7 +321,7 @@ export default function Reports() {
           },
           {
             label: t("Total Transactions"),
-            value: String(data.transactions.length),
+            value: String(filteredTransactions.length),
             icon: "◎",
             color: "var(--primary)",
           },
