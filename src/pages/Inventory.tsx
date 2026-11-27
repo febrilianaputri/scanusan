@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAppData } from '../data/AppDataContext';
-import type { Product } from '../types';
+import type { Product, Supplier } from '../types';
 import { useLanguage } from '../i18n';
 
 interface AddModalProps {
@@ -8,37 +8,86 @@ interface AddModalProps {
   onSave: (p: Omit<Product, 'id' | 'status'>) => void;
   product?: Product | null;
   existingCategories: string[];
+  suppliers: Supplier[];
 }
 
-function AddModal({ onClose, onSave, product, existingCategories }: AddModalProps) {
+function AddModal({
+  onClose,
+  onSave,
+  product,
+  existingCategories,
+  suppliers,
+}: AddModalProps) {
   const { t } = useLanguage();
-  const [form, setForm] = useState(() => product ? {
-    name: product.name, barcode: product.barcode, category: product.category, unit: product.unit || 'pcs',
-    minStock: product.minStock, currentStock: product.currentStock, location: product.location, supplier: product.supplier,
-  } : {
-    name: '', barcode: '', category: existingCategories[0] || 'Networking', unit: 'pcs',
-    minStock: 10, currentStock: 0, location: '', supplier: '',
-  });
+  const [form, setForm] = useState(() =>
+    product
+      ? {
+          name: product.name,
+          barcode: product.barcode,
+          category: product.category,
+          unit: product.unit || 'pcs',
+          minStock: product.minStock,
+          currentStock: product.currentStock,
+          location: product.location,
+          supplier: product.supplier,
+        }
+      : {
+          name: '',
+          barcode: '',
+          category: existingCategories[0] || 'Networking',
+          unit: 'pcs',
+          minStock: 10,
+          currentStock: 0,
+          location: '',
+          supplier: '',
+        }
+  );
 
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
 
+  const supplierOptions = useMemo(() => {
+    const activeNames = suppliers
+      .filter((s) => s.status !== 'inactive' && s.name.trim() !== '')
+      .map((s) => s.name.trim());
+
+    const uniqueNames = Array.from(new Set(activeNames));
+
+    // Jika produk lama punya supplier yang tidak ada di daftar aktif, tetap sertakan agar tidak hilang saat edit
+    if (form.supplier && !uniqueNames.includes(form.supplier)) {
+      return [form.supplier, ...uniqueNames];
+    }
+
+    return uniqueNames;
+  }, [suppliers, form.supplier]);
+
   const handleSave = () => {
     if (!form.name || !form.barcode) return;
-    const finalCategory = isCustomCategory && customCategory.trim() ? customCategory.trim() : form.category;
+    const finalCategory =
+      isCustomCategory && customCategory.trim()
+        ? customCategory.trim()
+        : form.category;
     onSave({ ...form, category: finalCategory });
     onClose();
   };
 
   const field = (label: string, key: keyof typeof form, type = 'text') => (
     <div>
-      <label className="block text-xs font-semibold mb-1 font-body" style={{ color: 'var(--muted-foreground)' }}>
+      <label
+        className="block text-xs font-semibold mb-1 font-body"
+        style={{ color: 'var(--muted-foreground)' }}
+      >
         {t(label)}
       </label>
       <input
         type={type}
         value={String(form[key])}
-        onChange={(e) => setForm({ ...form, [key]: type === 'number' ? Number(e.target.value) : e.target.value })}
+        onChange={(e) =>
+          setForm({
+            ...form,
+            [key]: type === 'number' ? Number(e.target.value) : e.target.value,
+          })
+        }
         className="w-full px-3 py-2.5 rounded-xl text-sm font-body outline-none transition-all"
         style={{
           background: 'var(--muted)',
@@ -52,16 +101,39 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-      <div className="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <h2 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>{t(product ? 'Edit Product' : 'Add New Product')}</h2>
-          <button onClick={onClose} className="text-lg cursor-pointer" style={{ color: 'var(--muted-foreground)' }}>✕</button>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.5)' }}
+    >
+      <div
+        className="rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <div
+          className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: '1px solid var(--border)' }}
+        >
+          <h2
+            className="font-display font-semibold text-base"
+            style={{ color: 'var(--foreground)' }}
+          >
+            {t(product ? 'Edit Product' : 'Add New Product')}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-lg cursor-pointer"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            ✕
+          </button>
         </div>
         <div className="px-6 py-4 flex flex-col gap-3">
           {field('Product Name', 'name')}
           <div>
-            <label className="block text-xs font-semibold mb-1 font-body" style={{ color: 'var(--muted-foreground)' }}>
+            <label
+              className="block text-xs font-semibold mb-1 font-body"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
               {t('Barcode')}
             </label>
             <div className="flex gap-2">
@@ -70,16 +142,26 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
                 onChange={(e) => setForm({ ...form, barcode: e.target.value })}
                 placeholder={t('Type or scan barcode, then press Enter')}
                 className="flex-1 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
-                style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+                style={{
+                  background: 'var(--muted)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--foreground)',
+                }}
               />
             </div>
-            <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
+            <p
+              className="text-xs mt-1"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
               {t('A connected scanner can type directly into this field.')}
             </p>
           </div>
-          
+
           <div>
-            <label className="block text-xs font-semibold mb-1 font-body" style={{ color: 'var(--muted-foreground)' }}>
+            <label
+              className="block text-xs font-semibold mb-1 font-body"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
               {t('Category')}
             </label>
             <select
@@ -93,10 +175,16 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
                 }
               }}
               className="w-full px-3 py-2.5 rounded-xl text-sm font-body outline-none cursor-pointer"
-              style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+              style={{
+                background: 'var(--muted)',
+                border: '1px solid var(--border)',
+                color: 'var(--foreground)',
+              }}
             >
               {existingCategories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
               ))}
               <option value="__NEW__"> {t('+ Tambah Kategori Baru')}</option>
             </select>
@@ -108,7 +196,11 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
                 value={customCategory}
                 onChange={(e) => setCustomCategory(e.target.value)}
                 className="w-full mt-2 px-3 py-2.5 rounded-xl text-sm font-body outline-none"
-                style={{ background: 'var(--muted)', border: '1px solid var(--primary)', color: 'var(--foreground)' }}
+                style={{
+                  background: 'var(--muted)',
+                  border: '1px solid var(--primary)',
+                  color: 'var(--foreground)',
+                }}
                 autoFocus
               />
             )}
@@ -116,22 +208,59 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
 
           {field('Unit', 'unit')}
           {field('Minimum Stock', 'minStock', 'number')}
-          {field('Current Stock', 'currentStock', 'number')} 
+          {field('Current Stock', 'currentStock', 'number')}
           {field('Location', 'location')}
-          {field('Supplier', 'supplier')}
+
+          <div>
+            <label
+              className="block text-xs font-semibold mb-1 font-body"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
+              {t('Supplier')}
+            </label>
+            <select
+              value={form.supplier}
+              onChange={(e) => setForm({ ...form, supplier: e.target.value })}
+              className="w-full px-3 py-2.5 rounded-xl text-sm font-body outline-none cursor-pointer"
+              style={{
+                background: 'var(--muted)',
+                border: '1px solid var(--border)',
+                color: 'var(--foreground)',
+              }}
+              onFocus={(e) => (e.target.style.borderColor = 'var(--primary)')}
+              onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
+            >
+              <option value="">{t('-- Pilih Pemasok --')}</option>
+              {supplierOptions.map((supName) => (
+                <option key={supName} value={supName}>
+                  {supName}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border)' }}>
+        <div
+          className="flex gap-3 px-6 py-4"
+          style={{ borderTop: '1px solid var(--border)' }}
+        >
           <button
             onClick={onClose}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
-            style={{ background: 'var(--muted)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
+            style={{
+              background: 'var(--muted)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--border)',
+            }}
           >
             {t('Cancel')}
           </button>
           <button
             onClick={handleSave}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            style={{
+              background: 'var(--primary)',
+              color: 'var(--primary-foreground)',
+            }}
           >
             {t(product ? 'Save Changes' : 'Save Product')}
           </button>
@@ -142,9 +271,21 @@ function AddModal({ onClose, onSave, product, existingCategories }: AddModalProp
 }
 
 const statusConfig = {
-  good: { label: 'Good', bg: 'rgba(106,168,79,0.12)', color: 'var(--success)' },
-  low: { label: 'Low Stock', bg: 'rgba(233,180,76,0.12)', color: 'var(--warning)' },
-  out: { label: 'Out of Stock', bg: 'rgba(217,83,79,0.12)', color: 'var(--danger)' },
+  good: {
+    label: 'Good',
+    bg: 'rgba(106,168,79,0.12)',
+    color: 'var(--success)',
+  },
+  low: {
+    label: 'Low Stock',
+    bg: 'rgba(233,180,76,0.12)',
+    color: 'var(--warning)',
+  },
+  out: {
+    label: 'Out of Stock',
+    bg: 'rgba(217,83,79,0.12)',
+    color: 'var(--danger)',
+  },
 };
 
 export default function Inventory() {
@@ -156,7 +297,7 @@ export default function Inventory() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null); // State untuk modal konfirmasi hapus
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
 
   const categoriesMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -176,27 +317,54 @@ export default function Inventory() {
   }, [categoriesMap]);
 
   const modalCategories = useMemo(() => {
-    return categories.filter(c => c !== 'All');
+    return categories.filter((c) => c !== 'All');
   }, [categories]);
 
   const filtered = prods.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search);
-    const matchCat = category === 'All' || (p.category && p.category.toLowerCase().trim() === category.toLowerCase().trim());
-    const matchStatus = statusFilter === 'All' || p.status === statusFilter.toLowerCase().replace(' ', '');
+    const matchSearch =
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.barcode.includes(search);
+    const matchCat =
+      category === 'All' ||
+      (p.category &&
+        p.category.toLowerCase().trim() === category.toLowerCase().trim());
+    const matchStatus =
+      statusFilter === 'All' ||
+      p.status === statusFilter.toLowerCase().replace(' ', '');
     return matchSearch && matchCat && matchStatus;
   });
 
   const handleAdd = (productData: Omit<Product, 'id' | 'status'>) => {
-    const status: Product['status'] = productData.currentStock === 0 ? 'out' : productData.currentStock < productData.minStock ? 'low' : 'good';
-    setData((current) => ({ ...current, products: [...current.products, { ...productData, id: String(Date.now()), status }] }));
+    const status: Product['status'] =
+      productData.currentStock === 0
+        ? 'out'
+        : productData.currentStock < productData.minStock
+        ? 'low'
+        : 'good';
+    setData((current) => ({
+      ...current,
+      products: [
+        ...current.products,
+        { ...productData, id: String(Date.now()), status },
+      ],
+    }));
   };
 
   const handleSave = (productData: Omit<Product, 'id' | 'status'>) => {
-    const status: Product['status'] = productData.currentStock === 0 ? 'out' : productData.currentStock < productData.minStock ? 'low' : 'good';
+    const status: Product['status'] =
+      productData.currentStock === 0
+        ? 'out'
+        : productData.currentStock < productData.minStock
+        ? 'low'
+        : 'good';
     if (editing) {
       setData((current) => ({
         ...current,
-        products: current.products.map((product) => product.id === editing.id ? { ...productData, id: product.id, status } : product),
+        products: current.products.map((product) =>
+          product.id === editing.id
+            ? { ...productData, id: product.id, status }
+            : product
+        ),
       }));
       setEditing(null);
       return;
@@ -208,7 +376,9 @@ export default function Inventory() {
     if (!deletingProduct) return;
     setData((current) => ({
       ...current,
-      products: current.products.filter((product) => product.id !== deletingProduct.id),
+      products: current.products.filter(
+        (product) => product.id !== deletingProduct.id
+      ),
     }));
     setDeletingProduct(null);
   };
@@ -220,7 +390,10 @@ export default function Inventory() {
         <div className="flex flex-wrap gap-2 flex-1">
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+            }}
           >
             <span style={{ color: 'var(--muted-foreground)' }}>🔍</span>
             <input
@@ -235,23 +408,45 @@ export default function Inventory() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="px-3 py-2 rounded-xl text-sm font-body outline-none cursor-pointer"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              color: 'var(--foreground)',
+            }}
           >
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3 py-2 rounded-xl text-sm font-body outline-none cursor-pointer"
-            style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              color: 'var(--foreground)',
+            }}
           >
-            {['All', 'Good', 'Low', 'Out'].map((s) => <option key={s} value={s}>{t(s)}</option>)}
+            {['All', 'Good', 'Low', 'Out'].map((s) => (
+              <option key={s} value={s}>
+                {t(s)}
+              </option>
+            ))}
           </select>
         </div>
         <button
-          onClick={() => { setEditing(null); setShowModal(true); }}
+          onClick={() => {
+            setEditing(null);
+            setShowModal(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          style={{
+            background: 'var(--primary)',
+            color: 'var(--primary-foreground)',
+          }}
         >
           + {t('Add Product')}
         </button>
@@ -265,9 +460,28 @@ export default function Inventory() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm font-body">
             <thead>
-              <tr style={{ background: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
-                {['Product', 'Barcode', 'Category', 'Current Stock', 'Min Stock', 'Status', 'Location', 'Supplier', 'Actions'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
+              <tr
+                style={{
+                  background: 'var(--muted)',
+                  borderBottom: '1px solid var(--border)',
+                }}
+              >
+                {[
+                  'Product',
+                  'Barcode',
+                  'Category',
+                  'Current Stock',
+                  'Min Stock',
+                  'Status',
+                  'Location',
+                  'Supplier',
+                  'Actions',
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left px-4 py-3 text-xs font-semibold"
+                    style={{ color: 'var(--muted-foreground)' }}
+                  >
                     {t(h)}
                   </th>
                 ))}
@@ -281,33 +495,90 @@ export default function Inventory() {
                     key={p.id}
                     className="transition-colors"
                     style={{ borderBottom: '1px solid var(--border)' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--muted)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'var(--muted)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = 'transparent')
+                    }
                   >
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{p.name}</div>
+                      <div
+                        className="font-semibold text-sm"
+                        style={{ color: 'var(--foreground)' }}
+                      >
+                        {p.name}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
+                    <td
+                      className="px-4 py-3 text-xs font-mono"
+                      style={{ color: 'var(--muted-foreground)' }}
+                    >
                       {p.barcode}
                     </td>
-                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{p.category}</td>
-                    <td className="px-4 py-3 font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
+                    <td
+                      className="px-4 py-3 text-xs"
+                      style={{ color: 'var(--muted-foreground)' }}
+                    >
+                      {p.category}
+                    </td>
+                    <td
+                      className="px-4 py-3 font-semibold text-sm"
+                      style={{ color: 'var(--foreground)' }}
+                    >
                       {p.currentStock} {p.unit}
                     </td>
-                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{p.minStock}</td>
+                    <td
+                      className="px-4 py-3 text-xs"
+                      style={{ color: 'var(--muted-foreground)' }}
+                    >
+                      {p.minStock}
+                    </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: s.bg, color: s.color }}>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                        style={{ background: s.bg, color: s.color }}
+                      >
                         {t(s.label)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{p.location}</td>
-                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{p.supplier}</td>
+                    <td
+                      className="px-4 py-3 text-xs"
+                      style={{ color: 'var(--muted-foreground)' }}
+                    >
+                      {p.location}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-xs"
+                      style={{ color: 'var(--muted-foreground)' }}
+                    >
+                      {p.supplier}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        <button onClick={() => { setEditing(p); setShowModal(true); }} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                          style={{ background: 'var(--muted)', color: 'var(--primary)' }}>{t('Edit')}</button>
-                        <button onClick={() => setDeletingProduct(p)} className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                          style={{ background: 'rgba(217,83,79,0.1)', color: 'var(--danger)' }}>{t('Delete')}</button>
+                        <button
+                          onClick={() => {
+                            setEditing(p);
+                            setShowModal(true);
+                          }}
+                          className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                          style={{
+                            background: 'var(--muted)',
+                            color: 'var(--primary)',
+                          }}
+                        >
+                          {t('Edit')}
+                        </button>
+                        <button
+                          onClick={() => setDeletingProduct(p)}
+                          className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                          style={{
+                            background: 'rgba(217,83,79,0.1)',
+                            color: 'var(--danger)',
+                          }}
+                        >
+                          {t('Delete')}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -316,9 +587,16 @@ export default function Inventory() {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--border)' }}>
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-            {t('Showing')} {filtered.length} {t('of')} {prods.length} {t('products')}
+        <div
+          className="px-4 py-3 flex items-center justify-between"
+          style={{ borderTop: '1px solid var(--border)' }}
+        >
+          <span
+            className="text-xs"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            {t('Showing')} {filtered.length} {t('of')} {prods.length}{' '}
+            {t('products')}
           </span>
         </div>
       </div>
@@ -327,26 +605,59 @@ export default function Inventory() {
       {showModal && (
         <AddModal
           product={editing}
-          existingCategories={modalCategories.length > 0 ? modalCategories : ['Networking', 'General']}
-          onClose={() => { setShowModal(false); setEditing(null); }}
+          existingCategories={
+            modalCategories.length > 0
+              ? modalCategories
+              : ['Networking', 'General']
+          }
+          suppliers={data.suppliers}
+          onClose={() => {
+            setShowModal(false);
+            setEditing(null);
+          }}
           onSave={handleSave}
         />
       )}
 
       {/* Modal Konfirmasi Hapus Kustom */}
       {deletingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+        >
+          <div
+            className="rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+            }}
+          >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(217,83,79,0.12)', color: 'var(--danger)' }}>
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{
+                  background: 'rgba(217,83,79,0.12)',
+                  color: 'var(--danger)',
+                }}
+              >
                 ⚠️
               </div>
               <div>
-                <h3 className="font-display font-semibold text-base" style={{ color: 'var(--foreground)' }}>
+                <h3
+                  className="font-display font-semibold text-base"
+                  style={{ color: 'var(--foreground)' }}
+                >
                   {t('Hapus Produk')}
                 </h3>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-                  {t('Apakah Anda yakin ingin menghapus produk')} <strong style={{ color: 'var(--foreground)' }}>{deletingProduct.name}</strong>?
+                <p
+                  className="text-xs mt-0.5"
+                  style={{ color: 'var(--muted-foreground)' }}
+                >
+                  {t('Apakah Anda yakin ingin menghapus produk')}{' '}
+                  <strong style={{ color: 'var(--foreground)' }}>
+                    {deletingProduct.name}
+                  </strong>
+                  ?
                 </p>
               </div>
             </div>
@@ -354,7 +665,11 @@ export default function Inventory() {
               <button
                 onClick={() => setDeletingProduct(null)}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold font-body cursor-pointer"
-                style={{ background: 'var(--muted)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
+                style={{
+                  background: 'var(--muted)',
+                  color: 'var(--foreground)',
+                  border: '1px solid var(--border)',
+                }}
               >
                 {t('Cancel')}
               </button>

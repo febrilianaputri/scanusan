@@ -49,8 +49,59 @@ function computeProductStatus(
   return "good"
 }
 
+function resolveSupplierId(
+  rawSupplier: unknown,
+  suppliers: Supplier[]
+): string | null {
+  const val = String(rawSupplier ?? "").trim()
+  if (!val) return null
+
+  const byId = suppliers.find((s) => String(s.id) === val)
+  if (byId) return String(byId.id)
+
+  const byName = suppliers.find(
+    (s) => s.name.trim().toLowerCase() === val.toLowerCase()
+  )
+  if (byName) return String(byName.id)
+
+  return null
+}
+
+function resolveSupplierName(
+  row: Record<string, unknown>,
+  suppliers: Supplier[]
+): string {
+  const joinedSupplier = row.suppliers as
+    | { id?: string; name?: string }
+    | Array<{ id?: string; name?: string }>
+    | null
+    | undefined
+
+  if (Array.isArray(joinedSupplier) && joinedSupplier[0]?.name) {
+    return String(joinedSupplier[0].name)
+  }
+  if (
+    joinedSupplier &&
+    !Array.isArray(joinedSupplier) &&
+    joinedSupplier.name
+  ) {
+    return String(joinedSupplier.name)
+  }
+
+  const supplierId = String(row.supplier_id ?? row.supplierId ?? "").trim()
+  if (supplierId) {
+    const matched = suppliers.find((s) => String(s.id) === supplierId)
+    if (matched) return matched.name
+  }
+
+  return row.supplier ? String(row.supplier) : ""
+}
+
 // --- HELPER MAPPING PRODUCT ---
-function mapProductFromDb(row: Record<string, unknown>): Product {
+function mapProductFromDb(
+  row: Record<string, unknown>,
+  suppliers: Supplier[] = []
+): Product {
   const stockVal = Number(
     row.current_stock ?? row.currentStock ?? row.stock ?? 0
   )
@@ -66,17 +117,20 @@ function mapProductFromDb(row: Record<string, unknown>): Product {
     minStock: minStockVal,
     status: computeProductStatus(stockVal, minStockVal, row.status),
     location: row.location ? String(row.location) : "",
-    supplier: row.supplier ? String(row.supplier) : "",
+    supplier: resolveSupplierName(row, suppliers),
   }
 }
 
-function mapProductToDb(item: Product) {
+function mapProductToDb(item: Product, suppliers: Supplier[] = []) {
   const p = item as unknown as Record<string, unknown>
   const stockVal = Number(item.currentStock ?? p.stock ?? 0)
   const minStockVal = Number(item.minStock ?? p.min_stock ?? 5)
   const codeValue = String(
     item.barcode || p.sku || item.id || "BARCODE-UNKNOWN"
   ).trim()
+  const locationValue = String(item.location ?? p.location ?? "").trim()
+  const supplierInput =
+    item.supplier ?? p.supplier_id ?? p.supplierId ?? p.supplier ?? ""
 
   return {
     id: String(item.id),
@@ -86,6 +140,8 @@ function mapProductToDb(item: Product) {
     stock: stockVal,
     min_stock: minStockVal,
     unit: item.unit ? String(item.unit) : "pcs",
+    location: locationValue ? locationValue : null,
+    supplier_id: resolveSupplierId(supplierInput, suppliers),
     updated_at: new Date().toISOString(),
   }
 }
@@ -184,7 +240,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     try {
       const [productsRes, transactionsRes, suppliersRes] = await Promise.all([
-        supabase.from("products").select("*").order("name", { ascending: true }),
+        supabase
+          .from("products")
+          .select("*, suppliers(id, name)")
+          .order("name", { ascending: true }),
         supabase
           .from("transactions")
           .select("*")
@@ -195,18 +254,20 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       if (productsRes.error) throw productsRes.error
       if (transactionsRes.error) throw transactionsRes.error
 
+      const mappedSuppliers: Supplier[] = suppliersRes.error
+        ? latestData.current.suppliers
+        : (suppliersRes.data ?? []).map((row) =>
+            mapSupplierFromDb(row as Record<string, unknown>)
+          )
+
       const nextData: AppData = {
         products: (productsRes.data ?? []).map((row) =>
-          mapProductFromDb(row as Record<string, unknown>)
+          mapProductFromDb(row as Record<string, unknown>, mappedSuppliers)
         ),
         transactions: (transactionsRes.data ?? []).map((row) =>
           mapTransactionFromDb(row as Record<string, unknown>)
         ),
-        suppliers: suppliersRes.error
-          ? latestData.current.suppliers
-          : (suppliersRes.data ?? []).map((row) =>
-              mapSupplierFromDb(row as Record<string, unknown>)
-            ),
+        suppliers: mappedSuppliers,
         users: latestData.current.users,
       }
 
@@ -302,8 +363,21 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         return validBarcodes.has(code)
       })
 
+      // Kosongkan supplier di produk jika pemasok tersebut dihapus
+      const validSupplierNames = new Set(
+        nextData.suppliers.map((s) => s.name.trim().toLowerCase())
+      )
+      const cleanedProducts = nextData.products.map((p) => {
+        const supName = String(p.supplier ?? "").trim().toLowerCase()
+        if (supName && !validSupplierNames.has(supName)) {
+          return { ...p, supplier: "" }
+        }
+        return p
+      })
+
       const finalData: AppData = {
         ...nextData,
+        products: cleanedProducts,
         transactions: filteredTransactions,
       }
 
@@ -311,31 +385,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setDataState(finalData)
 
       try {
-        if (finalData.products.length > 0) {
-          const { error: prodErr } = await supabase
-            .from("products")
-            .upsert(finalData.products.map(mapProductToDb), { onConflict: "id" })
-          if (prodErr) throw prodErr
-        }
-
-        if (finalData.transactions.length > 0) {
-          const { error: txErr } = await supabase
-            .from("transactions")
-            .upsert(finalData.transactions.map(mapTransactionToDb), {
-              onConflict: "id",
-            })
-          if (txErr) throw txErr
-        }
-
-        if (finalData.suppliers.length > 0) {
-          const { error: supErr } = await supabase
-            .from("suppliers")
-            .upsert(finalData.suppliers.map(mapSupplierToDb), {
-              onConflict: "id",
-            })
-          if (supErr && supErr.code !== "42P01") throw supErr
-        }
-
+        // A. Hapus data yang dihapus terlebih dahulu
         const nextProductIds = new Set(finalData.products.map((p) => p.id))
         const removedProductIds = prevData.products
           .filter((p) => !nextProductIds.has(p.id))
@@ -360,6 +410,50 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
             .delete()
             .in("id", removedTxIds)
           if (delTxErr) throw delTxErr
+        }
+
+        const nextSupplierIds = new Set(finalData.suppliers.map((s) => s.id))
+        const removedSupplierIds = prevData.suppliers
+          .filter((s) => !nextSupplierIds.has(s.id) && Boolean(s.id))
+          .map((s) => s.id)
+
+        if (removedSupplierIds.length > 0) {
+          const { error: delSupErr } = await supabase
+            .from("suppliers")
+            .delete()
+            .in("id", removedSupplierIds)
+          if (delSupErr) throw delSupErr
+        }
+
+        // B. Upsert data yang tersisa/diubah (suppliers dulu, lalu products, lalu transactions)
+        if (finalData.suppliers.length > 0) {
+          const { error: supErr } = await supabase
+            .from("suppliers")
+            .upsert(finalData.suppliers.map(mapSupplierToDb), {
+              onConflict: "id",
+            })
+          if (supErr && supErr.code !== "42P01") throw supErr
+        }
+
+        if (finalData.products.length > 0) {
+          const { error: prodErr } = await supabase
+            .from("products")
+            .upsert(
+              finalData.products.map((item) =>
+                mapProductToDb(item, finalData.suppliers)
+              ),
+              { onConflict: "id" }
+            )
+          if (prodErr) throw prodErr
+        }
+
+        if (finalData.transactions.length > 0) {
+          const { error: txErr } = await supabase
+            .from("transactions")
+            .upsert(finalData.transactions.map(mapTransactionToDb), {
+              onConflict: "id",
+            })
+          if (txErr) throw txErr
         }
 
         setError(null)
